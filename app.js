@@ -9,9 +9,11 @@ app.engine('ejs', ejsMate);
 app.set('view engine','ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-const mainRouter = require('./routes/main');
+const mainRouter = require('./routes/index');
+const communityRouter = require('./routes/community')
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', mainRouter);
+app.use('/community', communityRouter);
 
 app.get('/', (req, res) => {
     res.send(__dirname + '/views/main.ejs');
