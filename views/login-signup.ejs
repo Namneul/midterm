@@ -1,0 +1,22 @@
+<% layout('layout', { title: 'Login / Signup' }) %>
+<section class="card max-480">
+    <h1>Login / Signup</h1>
+    <div class="tabs">
+        <a href="/auth/login" class="tab <%= mode==='login'?'active':'' %>">Login</a>
+        <a href="/auth/signup" class="tab <%= mode==='signup'?'active':'' %>">Signup</a>
+    </div>
+
+    <form class="form">
+        <label>이메일
+            <input type="email" placeholder="you@example.com"/>
+        </label>
+        <label>비밀번호
+            <input type="password" placeholder="••••••••"/>
+        </label>
+        <button class="btn full"><%= mode==='signup'?'회원가입':'로그인' %></button>
+    </form>
+
+    <div class="muted mt-12">
+        로그인 후 → <a href="/profile">UserProfile</a>
+    </div>
+</section>

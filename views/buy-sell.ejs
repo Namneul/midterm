@@ -1,0 +1,25 @@
+<% layout('layout', { title: 'Buy / Sell Request' }) %>
+<section class="card max-640">
+    <h1>Buy / Sell Request</h1>
+    <form class="form">
+        <label>종류
+            <select>
+                <option>구매 희망</option>
+                <option>판매 희망</option>
+            </select>
+        </label>
+
+        <label>제목
+            <input type="text" placeholder="예: 노트북 구매 원합니다"/>
+        </label>
+
+        <label>내용
+            <textarea rows="6" placeholder="상세 설명을 입력하세요"></textarea>
+        </label>
+
+        <div class="grid-2">
+            <a class="btn ghost" href="/community">← Community</a>
+            <button class="btn">등록</button>
+        </div>
+    </form>
+</section>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title><%= title || 'App' %></title>
+    <link rel="stylesheet" href="/css/style.css"/>
+</head>
+<body>
+<header class="app-header">
+    <nav class="nav">
+        <a href="/" class="brand">MainScreen</a>
+        <div class="links">
+            <a href="/community">Community</a>
+            <a href="/auth/login">Login</a>
+            <a href="/auth/signup">Signup</a>
+            <a href="/profile">UserProfile</a>
+        </div>
+    </nav>
+</header>
+
+<main class="container">
+    <%- body %>
+</main>
+
+<footer class="app-footer">
+    <small>© Demo UI</small>
+</footer>
+</body>
+</html>
