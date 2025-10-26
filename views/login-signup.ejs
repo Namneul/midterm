@@ -1,22 +1,150 @@
 <% layout('layout', { title: 'Login / Signup' }) %>
 <section class="card max-480">
     <h1>Login / Signup</h1>
+
+    <!-- 상단 알림 영역 (성공/실패 메시지 표시) -->
+    <div id="alert" class="alert" hidden></div>
+
     <div class="tabs">
         <a href="/auth/login" class="tab <%= mode==='login'?'active':'' %>">Login</a>
         <a href="/auth/signup" class="tab <%= mode==='signup'?'active':'' %>">Signup</a>
     </div>
 
-    <form class="form">
-        <label>이메일
-            <input type="email" placeholder="you@example.com"/>
-        </label>
-        <label>비밀번호
-            <input type="password" placeholder="••••••••"/>
-        </label>
-        <button class="btn full"><%= mode==='signup'?'회원가입':'로그인' %></button>
-    </form>
+    <% if (mode === 'signup') { %>
+        <form class="form js-auth-form" action="/auth/signup" method="post" novalidate>
+            <label>이름
+                <input name="name" type="text" placeholder="홍길동" required />
+            </label>
+            <label>아이디
+                <input name="id" type="text" placeholder="pizzaboy123" required />
+            </label>
+            <label>비밀번호
+                <input name="password" type="password" placeholder="••••••••" required />
+            </label>
+            <label>비밀번호 확인
+                <input name="passwordChk" type="password" placeholder="••••••••" required />
+            </label>
+            <label>이메일
+                <input name="email" type="email" placeholder="you@example.com" required />
+            </label>
+            <label>소속 대학
+                <input name="university" type="text" placeholder="전북대학교" />
+            </label>
+            <label>학번
+                <input name="studentNum" type="number" placeholder="202512345" />
+            </label>
+            <button class="btn full" type="submit">회원가입</button>
+        </form>
+    <% } else { %>
+        <form class="form js-auth-form" action="/auth/login" method="post" novalidate>
+            <label>아이디
+                <input name="id" type="text" placeholder="pizzaboy123" required />
+            </label>
+            <label>비밀번호
+                <input name="password" type="password" placeholder="••••••••" required />
+            </label>
+            <button class="btn full" type="submit">로그인</button>
+        </form>
+    <% } %>
 
     <div class="muted mt-12">
         로그인 후 → <a href="/profile">UserProfile</a>
     </div>
 </section>
+
+<!-- 필드 에러 스타일(간단) -->
+<style>
+    .field-error { font-size: 12px; margin-top: 4px; }
+    .field-error.error { color: #c0392b; }
+    .is-invalid { outline: 2px solid #c0392b; }
+    .alert { margin: 12px 0; padding: 10px; border-radius: 8px; }
+    .alert.success { background: #e8f8f1; }
+    .alert.error { background: #fdecea; }
+</style>
+
+<!-- 제출 가로채기 스크립트 -->
+<script>
+    (function(){
+        const form = document.querySelector('.js-auth-form');
+        if (!form) return;
+
+        const alertBox = document.getElementById('alert');
+
+        function showAlert(kind, msg) {
+            alertBox.hidden = false;
+            alertBox.className = 'alert ' + kind; // success | error
+            alertBox.textContent = msg;
+        }
+        function clearAlert() {
+            alertBox.hidden = true;
+            alertBox.className = 'alert';
+            alertBox.textContent = '';
+        }
+
+        function setFieldError(name, msg) {
+            const input = form.querySelector(`[name="${name}"]`);
+            if (!input) return;
+            input.classList.add('is-invalid');
+            // 기존 에러 제거
+            input.parentElement.querySelectorAll('.field-error').forEach(n => n.remove());
+            // 새 에러 노드
+            const div = document.createElement('div');
+            div.className = 'field-error error';
+            div.textContent = msg;
+            input.parentElement.appendChild(div);
+        }
+        function clearFieldErrors() {
+            form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+            form.querySelectorAll('.field-error').forEach(el => el.remove());
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault(); // 기본 제출 막고 fetch로 전송
+            clearAlert();
+            clearFieldErrors();
+
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            const formData = new FormData(form);
+            const body = new URLSearchParams(formData);
+            submitBtn.disabled = true;
+            submitBtn.textContent = '처리 중…';
+
+            try {
+                const res = await fetch(form.action, {
+                    method: 'POST',
+                    headers: { 'Accept': 'application/json' }, // JSON 응답을 요청
+                    body: body
+                });
+
+                // JSON 파싱 시도(비JSON이면 빈 객체)
+                const data = await res.json().catch(() => ({}));
+
+                if (!res.ok || data.ok === false) {
+                    // 필드별 에러가 있으면 인라인 표시
+                    if (data.fieldErrors) {
+                        Object.entries(data.fieldErrors).forEach(([k, v]) => setFieldError(k, v));
+                    }
+                    showAlert('error', data.message || '입력값을 확인해 주세요.');
+                    return;
+                }
+
+                // 성공 처리
+                showAlert('success', data.message || '처리되었습니다.');
+                if (data.redirect) {
+                    location.href = data.redirect;
+                } else {
+                    // 기본 리다이렉트 정책
+                    if (form.action.endsWith('/auth/signup')) location.href = '/auth/login';
+                    else location.href = '/profile';
+                }
+            } catch (err) {
+                console.error(err);
+                showAlert('error', '네트워크 또는 서버 오류가 발생했습니다.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+            }
+        });
+    })();
+</script>
