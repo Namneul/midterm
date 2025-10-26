@@ -1,5 +1,105 @@
 const express  = require('express');
 const router = express.Router();
+const multer = require('multer');
+const path = require('path');
+const AuctionItem = require('../models/AuctionItem'); // MongoDB 모델
+const Bid = require('../models/Bid');
+const db = require('../models/maria');
+
+
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'uploads/'); // public/uploads/ 폴더에 저장
+    },
+    filename: (req, file, cb) => {
+        const ext = path.extname(file.originalname);
+        cb(null, Date.now() + ext); // 123456789.pdf
+    }
+});
+
+// 2. 파일 필터 (PDF, 이미지만 허용)
+const fileFilter = (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|pdf/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+
+    if (extname && mimetype) {
+        return cb(null, true);
+    } else {
+        cb(new Error('PDF, JPG, PNG 파일만 업로드 가능합니다.'), false);
+    }
+};
+
+// 3. Multer 인스턴스 생성
+const upload = multer({
+    storage: storage,
+    fileFilter: fileFilter,
+    limits: { fileSize: 10 * 1024 * 1024 } // (예시) 10MB 제한
+});
+
+// ... (router.get('/auth/logout', ...) 다음 등) ...
+
+// [기존] 경매 등록 페이지 (GET)
+router.get('/auction/new', (req, res) => {
+    if (!req.session.user) {
+        req.flash('error', '로그인이 필요합니다.');
+        return res.redirect('/auth/login');
+    }
+    res.render('auction-new', {
+        title: "경매 등록"
+    });
+});
+
+// [추가] 경매 등록 처리 (POST)
+// upload.single('auctionFile') 미들웨어가 파일을 처리하고 req.file에 정보를 담아줍니다.
+router.post('/auction', upload.single('auctionFile'), async (req, res) => {
+    try {
+        // 1. 로그인 확인
+        if (!req.session.user) {
+            req.flash('error', '로그인이 필요합니다.');
+            return res.redirect('/auth/login');
+        }
+
+        // 2. 파일 업로드 확인
+        if (!req.file) {
+            req.flash('error', '자료 파일(PDF, 이미지)을 업로드해야 합니다.');
+            return res.redirect('/auction/new');
+        }
+
+        // 3. 폼 데이터 및 파일 정보 받기
+        const { title, description, startPrice, endDate } = req.body;
+        const { path: fileUrl, mimetype } = req.file;
+
+        // 4. 명세서에 맞게 파일 타입 분류
+        const fileType = mimetype.startsWith('image') ? 'image' : 'pdf';
+
+        // 5. 익명 닉네임 (임시로 세션 이름 사용, 추후 '평판 기능'시 수정)
+        // [cite: 9] 모든 활동은 익명 닉네임으로 이루어져야 함
+        const sellerNickname = req.session.user.name; // TODO: 실제 익명 닉네임으로 교체
+
+        // 6. MongoDB에 저장
+        const newItem = new AuctionItem({
+            title,
+            description,
+            fileUrl: fileUrl,
+            fileType,
+            startPrice,
+            endDate,
+            sellerId: req.session.user.id,
+            sellerNickname: sellerNickname,
+            currentPrice: startPrice // 시작가를 현재가로 설정
+        });
+        await newItem.save();
+
+        req.flash('success', '경매가 성공적으로 등록되었습니다.');
+        res.redirect('/'); // 메인 페이지로 리다이렉트
+
+    } catch (e) {
+        console.error(e);
+        req.flash('error', '경매 등록 중 오류가 발생했습니다: ' + e.message);
+        res.redirect('/auction/new');
+    }
+});
 
 router.get('/', (req, res) => {
     res.render('community', {
@@ -7,10 +107,180 @@ router.get('/', (req, res) => {
     });
 });
 
-router.get('/auction', (req, res) => {
-    res.render('auction', {
-        title:"경매"
-    });
+router.get('/auction', async (req, res) => {
+    try {
+        // 1. 페이지네이션 (명세서 필수)
+        const page = parseInt(req.query.page || '1', 10);
+        const limit = 20; // 한 페이지에 20개
+        const skip = (page - 1) * limit;
+
+        // 2. MongoDB에서 데이터 조회
+        const items = await AuctionItem.find({ status: 'active' })
+            .sort({ createdAt: -1 }) // 최신순
+            .skip(skip)
+            .limit(limit);
+
+        // 3. 총 페이지 수 계산
+        const totalItems = await AuctionItem.countDocuments({ status: 'active' });
+        const totalPages = Math.ceil(totalItems / limit);
+
+        // 4. auction.ejs 렌더링
+        res.render('auction', { // ⭐️ main.ejs가 아닌 auction.ejs
+            title: "경매 목록",
+            items: items,
+            currentPage: page,
+            totalPages: totalPages
+        });
+
+    } catch (e) {
+        console.error(e);
+        req.flash('error', '페이지를 불러오는 중 오류가 발생했습니다.');
+        res.redirect('/');
+    }
+});
+
+router.get('/auction/:id/file', async (req, res) => {
+    try {
+        if (!req.session.user) {
+            req.flash('error', '로그인이 필요합니다.');
+            return res.redirect('/auth/login');
+        }
+
+        const { id: auctionId } = req.params;
+        const item = await AuctionItem.findById(auctionId);
+
+        if (!item) {
+            req.flash('error', '파일을 찾을 수 없습니다.');
+            return res.redirect('/community/auction');
+        }
+
+        // [핵심] 현재 로그인한 사용자가 이 아이템의 판매자인지 확인
+        if (req.session.user.id !== item.sellerId) {
+            req.flash('error', '판매자만 전체 파일을 볼 수 있습니다.');
+            return res.redirect(`/community/auction/${auctionId}`);
+        }
+
+        // 1. 파일의 실제 서버 경로를 계산
+        // __dirname은 현재 파일(routes/)의 경로
+        // path.join으로 상위 폴더(..)로 나간 뒤, item.fileUrl(uploads/...) 경로와 합침
+        const filePath = path.join(__dirname, '..', item.fileUrl);
+
+        // 2. res.sendFile로 파일 전송
+        res.sendFile(filePath, (err) => {
+            if (err) {
+                console.error(err);
+                req.flash('error', '파일을 전송하는 중 오류가 발생했습니다.');
+                res.redirect(`/community/auction/${auctionId}`);
+            }
+        });
+
+    } catch (e) {
+        console.error(e);
+        res.redirect('/');
+    }
+});
+
+router.get('/auction/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const item = await AuctionItem.findById(id);
+
+        if (!item) {
+            req.flash('error', '해당 경매를 찾을 수 없습니다.');
+            return res.redirect('/community/auction'); // 목록으로
+        }
+
+        // (참고) 로그인 여부에 따라 입찰 폼을 보여줄지 결정할 수 있습니다.
+        const canBid = req.session.user && (req.session.user.id !== item.sellerId);
+
+        res.render('auction-detail', { // (새로 만들 EJS 파일)
+            title: item.title,
+            item: item,
+            canBid: canBid
+        });
+
+    } catch (e) {
+        console.error(e);
+        // ID 형식이 잘못되었을 때 (e.g., CastError)
+        req.flash('error', '경매 상세 정보를 불러오는 데 실패했습니다.');
+        res.redirect('/community/auction');
+    }
+});
+
+router.post('/auction/:id/bid', async (req, res) => {
+    const { id: auctionId } = req.params;
+
+    try {
+        // 1. 유효성 검사 (로그인, 판매자 본인 여부 등)
+        if (!req.session.user) {
+            req.flash('error', '로그인이 필요합니다.');
+            return res.redirect(`/community/auction/${auctionId}`);
+        }
+
+        const { id: bidderId, name: bidderNickname } = req.session.user; // 익명 닉네임으로 교체 필요
+        const { bidPrice } = req.body; // 폼에서 보낸 입찰가
+
+        const item = await AuctionItem.findById(auctionId);
+        if (!item) {
+            req.flash('error', '경매를 찾을 수 없습니다.');
+            return res.redirect('/community/auction');
+        }
+        if (item.sellerId === bidderId) {
+            req.flash('error', '본인의 경매에는 입찰할 수 없습니다.');
+            return res.redirect(`/community/auction/${auctionId}`);
+        }
+        if (parseFloat(bidPrice) <= item.currentPrice) {
+            req.flash('error', '현재가보다 높은 금액을 입찰해야 합니다.');
+            return res.redirect(`/community/auction/${auctionId}`);
+        }
+        if (item.status !== 'active' || new Date() > new Date(item.endDate)) {
+            req.flash('error', '이미 종료된 경매입니다.');
+            return res.redirect(`/community/auction/${auctionId}`);
+        }
+
+        // 2. [필수] 마감 1분 전 입찰 시, 마감 시간 1분 연장
+        const now = new Date();
+        const oneMinuteBeforeEnd = new Date(new Date(item.endDate).getTime() - 60 * 1000);
+
+        if (now >= oneMinuteBeforeEnd) {
+            // 마감 1분 전 -> (현재 시간 + 1분)으로 마감 연장
+            item.endDate = new Date(now.getTime() + 60 * 1000);
+            req.flash('success', '마감 1분 전 입찰! 경매가 1분 연장됩니다.');
+        }
+
+        // 3. MongoDB 업데이트
+        // 3a. Bid 컬렉션에 새 입찰 저장
+        const newBid = new Bid({
+            auctionItem: auctionId,
+            bidderId: bidderId,
+            bidderNickname: bidderNickname,
+            price: bidPrice
+        });
+        await newBid.save();
+
+        // 3b. AuctionItem 업데이트 (현재가, 최고입찰자, 연장된 마감시간)
+        item.currentPrice = bidPrice;
+        item.highestBidderId = bidderId;
+        // item.endDate는 위에서 연장되었을 수 있으므로 함께 저장
+        await item.save();
+
+        // 4. [필수] MariaDB 감사 로그 기록
+        await db.query(
+            'INSERT INTO BidAuditLog (auction_item_id, bidder_id, bidder_nickname, bid_price, bid_time) VALUES (?, ?, ?, ?, ?)',
+            [auctionId, bidderId, bidderNickname, bidPrice, now]
+        );
+
+        // 5. 성공 및 리다이렉트
+        if (req.flash('success').length === 0) { // 연장 메시지가 없었으면
+            req.flash('success', '입찰에 성공했습니다.');
+        }
+        return res.redirect(`/community/auction/${auctionId}`);
+
+    } catch (e) {
+        console.error(e);
+        req.flash('error', '입찰 중 오류가 발생했습니다: ' + e.message);
+        return res.redirect(`/community/auction/${auctionId}`);
+    }
 });
 
 router.get('/buy-sell', (req, res) => {

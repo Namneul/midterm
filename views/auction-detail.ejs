@@ -1,0 +1,62 @@
+<% layout('layout') -%>
+
+<div class="container mt-4">
+    <h1><%= item.title %></h1>
+
+    <div class="row">
+        <div class="col-md-6">
+            <p><strong>판매자:</strong> <%= item.sellerNickname %></p>
+            <p><strong>마감 시간:</strong> <%= new Date(item.endDate).toLocaleString() %></p>
+
+            <p class="mt-3">
+                <strong>첨부 파일:</strong>
+
+                <% if (currentUser && currentUser.id === item.sellerId) { %>
+                    <a href="/community/auction/<%= item._id %>/file" target="_blank">
+                        [ 내 파일 보기 (<%= item.fileType %>) ]
+                    </a>
+                <% } else { %>
+                    <span style="color: #6c757d;">
+                        [ <%= item.fileType %> 파일 (판매자만 접근 가능) ]
+                    </span>
+                <% } %>
+            </p>
+
+            <hr>
+            <h4>자료 설명</h4>
+            <p style="white-space: pre-wrap;"><%= item.description %></p>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card p-3">
+                <h3 class="text-center">현재 입찰가</h3>
+                <h1 class="text-center text-success"><%= item.currentPrice.toLocaleString() %> 원</h1>
+
+                <hr>
+
+                <% if (canBid) { %>
+                    <form action="/community/auction/<%= item._id %>/bid" method="POST">
+                        <div class="mb-3">
+                            <label for="bidPrice" class="form-label">입찰 금액</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="bidPrice" name="bidPrice"
+                                       placeholder="현재가보다 높은 금액"
+                                       min="<%= item.currentPrice + 1 %>" required>
+                                <button class="btn btn-danger" type="submit">즉시 입찰하기</button>
+                            </div>
+                        </div>
+                    </form>
+                    <small>마감 1분 전 입찰 시 마감 시간이 1분 연장됩니다.</small>
+
+                <% } else if (currentUser && currentUser.id === item.sellerId) { %>
+                    <p class="text-center text-muted">본인이 등록한 경매입니다.</p>
+
+                <% } else if (!currentUser) { %>
+                    <p class="text-center">
+                        <a href="/auth/login?redirect=/community/auction/<%= item._id %>">로그인</a> 후 입찰할 수 있습니다.
+                    </p>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</div>

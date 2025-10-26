@@ -1,0 +1,32 @@
+<% layout('layout') -%>
+
+<h1>경매 등록</h1>
+<form action="/community/auction" method="POST" enctype="multipart/form-data">
+    <div class="mb-3">
+        <label for="title" class="form-label">자료 제목</label>
+        <input type="text" class="form-control" id="title" name="title" required>
+    </div>
+
+    <div class="mb-3">
+        <label for="description" class="form-label">자료 설명</label>
+        <textarea class="form-control" id="description" name="description" rows="5" required></textarea>
+    </div>
+
+    <div class="mb-3">
+        <label for="auctionFile" class="form-label">업로드 파일</label>
+        <input type="file" class="form-control" id="auctionFile" name="auctionFile"
+               accept=".jpg, .jpeg, .png, .pdf" required>
+    </div>
+
+    <div class="mb-3">
+        <label for="startPrice" class="form-label">시작가 (원)</label>
+        <input type="number" class="form-control" id="startPrice" name="startPrice" min="0" value="1000" required>
+    </div>
+
+    <div class="mb-3">
+        <label for="endDate" class="form-label">경매 마감 시간</label>
+        <input type="datetime-local" class="form-control" id="endDate" name="endDate" required>
+    </div>
+
+    <button type="submit" class="btn btn-primary">경매 등록하기</button>
+</form>

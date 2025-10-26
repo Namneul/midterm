@@ -20,6 +20,29 @@ router.get('/auth/login', (req, res) => {
     });
 });
 
+// routes/index.js (수정된 코드)
+
+router.get('/auth/logout', (req, res) => {
+
+    // 1. 플래시 메시지를 *먼저* 설정합니다. (세션이 아직 살아있을 때)
+    req.flash('success', '로그아웃되었습니다.');
+
+    // 2. 그 다음, 세션을 파괴합니다.
+    req.session.destroy(err => {
+        if (err) {
+            console.error(err);
+            // 세션 파괴 실패 시, 플래시를 또 쓸 수 없으므로 쿼리스트링 등으로 처리
+            return res.redirect('/auth/login?error=logout-failed');
+        }
+
+        // 3. 쿠키를 지우고 리다이렉트합니다.
+        res.clearCookie('connect.sid');
+        return res.redirect('/');
+    });
+});
+
+
+
 router.get('/auth/signup', (req, res) => {
     res.render('login-signup', {
         title: '회원가입',
@@ -28,8 +51,13 @@ router.get('/auth/signup', (req, res) => {
 });
 
 router.get('/profile', (req, res) => {
+    if (!req.session.user) {
+        req.flash('error', '로그인이 필요합니다.')
+        return res.redirect('/auth/login');
+    }
     res.render('profile', {
-        title:"프로필"
+        title:"프로필",
+        user: req.session.user,
     });
 });
 
@@ -94,7 +122,7 @@ router.post('/auth/login', async (req, res) => {
             req.flash('error', failMsg); return res.redirect('/auth/login');
         }
 
-        req.session.user = { id: user.Id, name: user.name };
+        req.session.user = { id: user.Id, name: user.name, password: user.password_hash ,email: user.email, university:user.university, studentNum: user.studentNum };
         const okResp = { ok:true, message:`환영합니다, ${user.name}님!`, redirect:'/profile' };
         if (wantsJSON(req)) return res.json(okResp);
         req.flash('success', okResp.message); return res.redirect('/profile');
