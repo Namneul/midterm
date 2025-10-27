@@ -1,0 +1,27 @@
+<% layout('layout') -%>
+
+<h1><%= title %> (신원 조회)</h1>
+<p>
+    분쟁 발생 또는 신고 접수 시, 익명 닉네임을 조회하여 실제 신원을 확인합니다.
+</p>
+
+<form action="/admin/search" method="POST" class="mb-4">
+    <div class="input-group">
+        <input type="text" class="form-control" name="anonymousNickname" placeholder="익명 닉네임 (예: 친절한 다람쥐123)">
+        <button type="submit" class="btn btn-danger">조회</button>
+    </div>
+</form>
+
+<% if (searchResult) { %>
+    <div class="alert alert-warning">
+        <h4>조회 결과</h4>
+        <p><strong>익명 닉네임:</strong> <%= searchResult.anonymous_nickname %></p>
+        <hr>
+        <p><strong>로그인 ID:</strong> <%= searchResult.Id %></p>
+        <p><strong>실명:</strong> <%= searchResult.name %></p>
+        <p><strong>이메일:</strong> <%= searchResult.email %></p>
+        <p><strong>학교:</strong> <%= searchResult.university %></p>
+    </div>
+<% } else { %>
+    <p class="text-muted">조회할 익명 닉네임을 입력하세요.</p>
+<% } %>

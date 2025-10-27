@@ -1,23 +1,133 @@
-<% layout('layout', { title: 'UserProfile' }) %>
-<section class="card max-640">
-    <h1>UserProfile</h1>
-    <div class="profile">
-        <div class="avatar">U</div>
+<% layout('layout') -%>
+
+<div class="container mt-4">
+
+    <div class="p-4 mb-4 bg-light rounded-3">
+        <h1><%= currentUser.anonymousNickname %> 님의 마이페이지</h1>
+        <p class="lead">
+            현재 평판 점수:
+            <span class="fw-bold text-primary"><%= currentUser.reputationScore %>점</span>
+        </p>
+        <p>
+            (이메일: <%= currentUser.email %>)
+        </p>
+
+        <hr>
         <div>
-            <div class="label">이름</div>
-            <div class="value"><%= user.name %></div>
-            <div class="label">아이디</div>
-            <div class="value"><%= user.id %></div>
-            <div class="label mt-12">이메일</div>
-            <div class="value"><%= user.email %></div>
+            <a href="/profile/edit" class="btn btn-primary">
+                회원정보 수정
+            </a>
+
+            <button type="button" class="btn btn-outline-danger"
+                    data-bs-toggle="modal"
+                    data-bs-target="#deleteAccountModal">
+                회원 탈퇴
+            </button>
         </div>
     </div>
 
-    <div class="divider"></div>
+    <ul class="nav nav-tabs" id="myProfileTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="auctions-tab" data-bs-toggle="tab" data-bs-target="#auctions-panel" type="button" role="tab">
+                내 판매 목록 (<%= myAuctions.length %>)
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="won-tab" data-bs-toggle="tab" data-bs-target="#won-panel" type="button" role="tab">
+                내 낙찰 목록 (구매) (<%= myBidsWon.length %>)
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="posts-tab" data-bs-toggle="tab" data-bs-target="#posts-panel" type="button" role="tab">
+                내 작성글 (<%= myPosts.length %>)
+            </button>
+        </li>
+    </ul>
 
-    <div class="grid-3">
-        <a class="btn ghost" href="/community">커뮤니티로 가기</a>
-        <a class="btn ghost" href="/">메인으로</a>
-        <a class="btn ghost" href="/auth/logout">로그아웃</a>
+    <div class="tab-content" id="myProfileTabContent">
+
+        <div class="tab-pane fade show active" id="auctions-panel" role="tabpanel">
+            <div class="list-group mt-3">
+                <% if (myAuctions.length > 0) { %>
+                    <% myAuctions.forEach(item => { %>
+                        <a href="/community/auction/<%= item._id %>" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1"><%= item.title %></h5>
+                                <small>
+                                    <% if (item.status === 'active') { %>
+                                        <span class="badge bg-success">진행중</span>
+                                    <% } else { %>
+                                        <span class="badge bg-danger">종료됨</span>
+                                    <% } %>
+                                </small>
+                            </div>
+                            <p class="mb-1">현재가: <%= item.currentPrice.toLocaleString() %> 원 | 최고 입찰자: <%= item.highestBidderNickname || '없음' %></p>
+                            <small>마감: <%= new Date(item.endDate).toLocaleString() %></small>
+                        </a>
+                    <% }) %>
+                <% } else { %>
+                    <p class="mt-3">아직 등록한 경매가 없습니다.</p>
+                <% } %>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="won-panel" role="tabpanel">
+            <div class="list-group mt-3">
+                <% if (myBidsWon.length > 0) { %>
+                    <% myBidsWon.forEach(item => { %>
+                        <div class="list-group-item">
+                            <h5 class="mb-1"><%= item.title %></h5>
+                            <p class="mb-1">낙찰가: <span class="fw-bold text-danger"><%= item.currentPrice.toLocaleString() %> 원</span></p>
+                            <p class="mb-1">판매자: <%= item.sellerNickname %> | 종료 시간: <%= new Date(item.endDate).toLocaleString() %></p>
+                            <a href="/community/auction/<%= item._id %>/file" class="btn btn-sm btn-success">자료 다운로드</a>
+                            <a href="/community/auction/<%= item._id %>" class="btn btn-sm btn-outline-secondary">경매 다시보기</a>
+                        </div>
+                    <% }) %>
+                <% } else { %>
+                    <p class="mt-3">아직 낙찰받은 경매가 없습니다.</p>
+                <% } %>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="posts-panel" role="tabpanel">
+            <div class="list-group mt-3">
+                <% if (myPosts.length > 0) { %>
+                    <% myPosts.forEach(post => { %>
+                        <a href="/board/<%= post._id %>" class="list-group-item list-group-item-action">
+                            <h5 class="mb-1"><%= post.title %></h5>
+                            <small>작성일: <%= new Date(post.createdAt).toLocaleString() %></small>
+                        </a>
+                    <% }) %>
+                <% } else { %>
+                    <p class="mt-3">아직 작성한 게시글이 없습니다.</p>
+                <% } %>
+            </div>
+        </div>
+
     </div>
-</section>
+</div> <div class="modal fade" id="deleteAccountModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger">회원 탈퇴</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <form action="/profile/delete?_method=DELETE" method="POST">
+                <div class="modal-body">
+                    <p>정말 탈퇴하시겠습니까? <br> 모든 글과 댓글이 익명화되며, 계정 정보는 복구할 수 없습니다.</p>
+                    <p>본인 확인을 위해 <strong>비밀번호</strong>를 입력해주세요.</p>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">비밀번호</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                    <button type="submit" class="btn btn-danger">탈퇴 확인</button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+</div>

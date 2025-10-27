@@ -1,25 +1,59 @@
-<% layout('layout', { title: 'Buy / Sell Request' }) %>
-<section class="card max-640">
-    <h1>Buy / Sell Request</h1>
-    <form class="form">
-        <label>종류
-            <select>
-                <option>구매 희망</option>
-                <option>판매 희망</option>
-            </select>
-        </label>
+<% layout('layout') -%>
 
-        <label>제목
-            <input type="text" placeholder="예: 노트북 구매 원합니다"/>
-        </label>
+<h1><%= title %></h1>
+<a href="/community/buy-sell/new" class="btn btn-primary mb-3">새 글 작성하기</a>
 
-        <label>내용
-            <textarea rows="6" placeholder="상세 설명을 입력하세요"></textarea>
-        </label>
+<table class="table table-hover">
+    <thead>
+    <tr>
+        <th scope="col">분류</th>
+        <th scope="col">제목</th>
+        <th scope="col">가격</th>
+        <th scope="col">작성자</th>
+        <th scope="col">작성일</th>
+    </tr>
+    </thead>
+    <tbody>
+    <% posts.forEach(post => { %>
+        <tr>
+            <td>
+                <% if (post.postType === 'sell') { %>
+                    <span class="badge bg-danger">팝니다</span>
+                <% } else { %>
+                    <span class="badge bg-primary">삽니다</span>
+                <% } %>
+            </td>
+            <td>
+                <a href="/community/buy-sell/<%= post._id %>">
+                    <%= post.title %>
+                    <span class="text-muted">[<%= post.comments.length %>]</span>
+                </a>
+            </td>
+            <td><%= post.price.toLocaleString() %> 원</td>
+            <td>
+                <%= post.authorNickname %>
+                <span class="text-primary fw-bold">(<%= post.authorReputation %>점)</span>
+            </td>
+            <td><%= new Date(post.createdAt).toLocaleDateString() %></td>
+        </tr>
+    <% }) %>
+    </tbody>
+</table>
 
-        <div class="grid-2">
-            <a class="btn ghost" href="/community">← Community</a>
-            <button class="btn">등록</button>
-        </div>
-    </form>
-</section>
+<nav class="mt-4" aria-label="Page navigation">
+    <ul class="pagination justify-content-center">
+        <% if (currentPage > 1) { %>
+            <li class="page-item"><a class="page-link" href="/community/buy-sell?page=<%= currentPage - 1 %>">이전</a></li>
+        <% } else { %>
+            <li class="page-item disabled"><a class="page-link" href="#">이전</a></li>
+        <% } %>
+        <% for (let i = 1; i <= totalPages; i++) { %>
+            <li class="page-item <%= i === currentPage ? 'active' : '' %>"><a class="page-link" href="/community/buy-sell?page=<%= i %>"><%= i %></a></li>
+        <% } %>
+        <% if (currentPage < totalPages) { %>
+            <li class="page-item"><a class="page-link" href="/community/buy-sell?page=<%= currentPage + 1 %>">다음</a></li>
+        <% } else { %>
+            <li class="page-item disabled"><a class="page-link" href="#">다음</a></li>
+        <% } %>
+    </ul>
+</nav>

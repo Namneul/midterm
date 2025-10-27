@@ -1,29 +1,80 @@
-<% layout('layout', { title: 'Community' }) %>
-<section class="grid-3">
-    <div class="card">
-        <h1>Community</h1>
-        <p>게시글 리스트(더미)</p>
-        <ul class="list">
-            <li>첫 글 — alice</li>
-            <li>중고 악기 팝니다 — bob</li>
-            <li>오늘의 질문 — charlie</li>
-        </ul>
-    </div>
+<% layout('layout') -%>
 
-    <div class="card">
-        <h2>Go to</h2>
-        <div class="stack">
-            <a class="btn" href="/community/auction">Auction</a>
-            <a class="btn" href="/community/chat">Chat</a>
-            <a class="btn" href="/community/buy-sell">Buy/Sell Request</a>
+<div class="container mt-4">
+    <h1><%= title %> Hub</h1>
+    <p class="lead">경매, 자유게시판, 채팅 등 모든 활동을 모아보는 곳입니다.</p>
+
+    <!--
+      레이아웃을 3단 -> 2단 (최신글 8칸, 바로가기 4칸)으로 변경
+    -->
+    <div class="row g-4">
+
+        <!-- 1. 최신 활동 (8칸) -->
+        <div class="col-lg-8">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">최신 활동</h5>
+
+                    <% if (recentActivity && recentActivity.length > 0) { %>
+                        <ul class="list-group list-group-flush">
+
+                            <!-- ⭐️ 1단계에서 합친 배열을 반복문으로 렌더링 -->
+                            <% recentActivity.forEach(activity => { %>
+                                <a href="<%= activity.href %>" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <!-- 글 제목 (게시글/경매 공통) -->
+                                        <h6 class="mb-1 text-primary"><%= activity.title %></h6>
+                                        <small><%= new Date(activity.createdAt).toLocaleDateString() %></small>
+                                    </div>
+                                    <p class="mb-1">
+                                        <!-- ⭐️ 'type'에 따라 분기 -->
+                                        <% if (activity.type === 'auction') { %>
+                                            <span class="badge bg-danger">경매</span>
+                                            현재가: <%= activity.currentPrice.toLocaleString() %> 원
+                                        <% } else { %>
+                                            <span class="badge bg-success">게시글</span>
+                                            <!-- 내용은 50자만 미리보기 -->
+                                            <%= activity.content.substring(0, 50) %>...
+                                        <% } %>
+                                    </p>
+                                    <!-- 작성자 닉네임 (게시글/경매 공통) -->
+                                    <small class="text-muted">
+                                        by <%= activity.authorNickname || activity.sellerNickname %>
+                                        (<%= activity.authorReputation || activity.sellerReputationSnapshot || 0 %>점)
+                                    </small>
+                                </a>
+                            <% }) %>
+                        </ul>
+                    <% } else { %>
+                        <p>최근 활동이 없습니다.</p>
+                    <% } %>
+                </div>
+            </div>
         </div>
-    </div>
 
-    <div class="card">
-        <h2>Shortcut</h2>
-        <ul class="list">
-            <li><a href="/">MainScreen</a></li>
-            <li><a href="/auth/login">Login</a> → <a href="/profile">UserProfile</a></li>
-        </ul>
+        <!-- 2. 바로가기 (4칸) -->
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Go to</h5>
+                    <!-- ⭐️ 버튼 스타일 및 '자유게시판' 링크 추가 -->
+                    <div class="d-grid gap-2">
+                        <a class="btn btn-lg btn-outline-success" href="/board">
+                            <b>자유게시판</b>
+                        </a>
+                        <a class="btn btn-lg btn-outline-danger" href="/community/auction">
+                            <b>실시간 경매</b>
+                        </a>
+                        <a class="btn btn-lg btn-outline-primary" href="/community/chat">
+                            <b>실시간 채팅</b>
+                        </a>
+                        <a class="btn btn-lg btn-outline-secondary" href="/community/buy-sell">
+                            <b>팝니다/삽니다</b>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
-</section>
+</div>

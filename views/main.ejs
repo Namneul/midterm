@@ -1,21 +1,65 @@
-<% layout('layout', { title: 'MainScreen' }) %>
-<section class="grid-2">
-    <div class="card">
-        <h1>MainScreen</h1>
-        <p>메인에서 각 화면으로 이동하세요.</p>
-        <div class="actions">
-            <a id="goComBtn" class="btn" href="/community">Go Community</a>
-            <a id="goLoginBtn" class="btn" href="/auth/login">Go Login / Signup</a>
-        </div>
-    </div>
+<% layout('layout') -%>
 
-    <div class="card">
-        <h2>빠른 링크</h2>
-        <ul class="list">
-            <li><a href="/community/auction">Auction</a></li>
-            <li><a href="/community/chat">Chat</a></li>
-            <li><a href="/community/buy-sell">Buy/Sell Request</a></li>
-            <li><a href="/board">자유게시판</a></li>
-        </ul>
-    </div>
-</section>
+<h1><%= title %></h1>
+<p>메인 페이지입니다. (로그인 상태: <%= currentUser ? currentUser.name : '비로그인' %>)</p>
+
+<hr>
+<h3>🔥 현재 진행 중인 경매</h3>
+<div class="row mt-3">
+
+    <% if (items && items.length > 0) { %>
+        <% items.forEach(item => { %>
+            <div class="col-md-4 col-lg-3 mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title"><%= item.title %></h5>
+                        <p class="card-text">
+                            현재가:
+                            <span class="fw-bold text-success"><%= item.currentPrice.toLocaleString() %> 원</span>
+                        </p>
+                        <p class="card-text">
+                            <small class="text-muted">
+                                판매자: <%= item.sellerNickname %>
+                                <span class="text-primary fw-bold">(<%= item.sellerReputationSnapshot || 0 %>점)</span>
+                            </small>
+                        </p>
+                        <a href="/community/auction/<%= item._id %>" class="btn btn-primary">입찰하기</a>
+                    </div>
+                </div>
+            </div>
+        <% }) %>
+    <% } else { %>
+        <div class="col">
+            <p>현재 진행 중인 경매가 없습니다.</p>
+        </div>
+    <% } %>
+
+</div>
+
+<nav class="mt-4" aria-label="Page navigation">
+    <ul class="pagination justify-content-center">
+        <% if (currentPage > 1) { %>
+            <li class="page-item">
+                <a class="page-link" href="/?page=<%= currentPage - 1 %>">이전</a>
+            </li>
+        <% } else { %>
+            <li class="page-item disabled"><a class="page-link" href="#">이전</a></li>
+        <% } %>
+
+        <% for (let i = 1; i <= totalPages; i++) { %>
+            <% if (i === currentPage) { %>
+                <li class="page-item active"><a class="page-link" href="#"><%= i %></a></li>
+            <% } else { %>
+                <li class="page-item"><a class="page-link" href="/?page=<%= i %>"><%= i %></a></li>
+            <% } %>
+        <% } %>
+
+        <% if (currentPage < totalPages) { %>
+            <li class="page-item">
+                <a class="page-link" href="/?page=<%= currentPage + 1 %>">다음</a>
+            </li>
+        <% } else { %>
+            <li class="page-item disabled"><a class="page-link" href="#">다음</a></li>
+        <% } %>
+    </ul>
+</nav>

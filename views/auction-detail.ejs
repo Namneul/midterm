@@ -4,37 +4,26 @@
     <h1><%= item.title %></h1>
 
     <div class="row">
-        <div class="col-md-6">
+        <div class="col-md-5">
             <p>
                 <strong>판매자:</strong>
                 <%= item.sellerNickname %>
-                <span class="text-primary fw-bold">(<%= sellerReputation %> 점)</span>
+                <span class="text-primary fw-bold">(<%= sellerReputation %>점)</span>
             </p>
-            <div class="col-md-6">
-                <div class="card p-3">
-                    <p id="highest-bidder" class="text-center text-muted">
-                        <% if (item.highestBidderNickname){ %>
-                            최고 입찰자: <%= item.highestBidderNickname %>
-                            <span class="text-primary fw-bold">(<%= highestBidderReputation %>점)</span>
-                        <%= } else { %>
-                            (입찰자 없음)
-                        <%= }%>
-                    </p>
-                </div>
-            </div>
-            <p><strong>마감 시간:</strong> <%= new Date(item.endDate).toLocaleString() %></p>
+            <p>
+                <strong>마감 시간:</strong>
+                <%= new Date(item.endDate).toLocaleString() %>
+                <span id="timer" class="fw-bold text-danger ms-2"></span>
+            </p>
 
             <p class="mt-3">
                 <strong>첨부 파일:</strong>
-
                 <% if (currentUser && currentUser.id === item.sellerId) { %>
-                    <a href="/community/auction/<%= item._id %>/file" target="_blank">
-                        [ 내 파일 보기 (<%= item.fileType %>) ]
-                    </a>
+                    <a href="/community/auction/<%= item._id %>/file" target="_blank">[ 내 파일 보기 (<%= item.originalFileName || item.fileType %>) ]</a>
+                <% } else if (item.status === 'ended' && currentUser && currentUser.id === item.highestBidderId) { %>
+                    <a href="/community/auction/<%= item._id %>/file" target="_blank" class="text-success fw-bold">[ 낙찰 자료 다운로드 ]</a>
                 <% } else { %>
-                    <span style="color: #6c757d;">
-                        [ <%= item.fileType %> 파일 (판매자만 접근 가능) ]
-                    </span>
+                    <span style="color: #6c757d;">[ <%= item.originalFileName || item.fileType %> (낙찰 시 다운로드 가능) ]</span>
                 <% } %>
             </p>
 
@@ -43,14 +32,35 @@
             <p style="white-space: pre-wrap;"><%= item.description %></p>
         </div>
 
-        <div class="col-md-6">
+        <div class="col-md-4">
             <div class="card p-3">
                 <h3 class="text-center">현재 입찰가</h3>
                 <h1 id="current-price" class="text-center text-success"><%= item.currentPrice.toLocaleString() %> 원</h1>
+                <p id="highest-bidder" class="text-center text-muted">
+                    <% if (item.highestBidderNickname) { %>
+                        최고 입찰자: <%= item.highestBidderNickname %>
+                        <span class="text-primary fw-bold">(<%= highestBidderReputation %>점)</span>
+                    <% } else { %>
+                        (입찰자 없음)
+                    <% } %>
+                </p>
 
                 <hr>
 
-                <% if (canBid) { %>
+                <% if (item.status === 'ended') { %>
+                    <div class="text-center">
+                        <h4 class="text-danger fw-bold">경매 종료됨</h4>
+                        <% if (item.highestBidderNickname) { %>
+                            <p><strong>최종 낙찰자: <%= item.highestBidderNickname %></strong></p>
+                            <% if (currentUser && currentUser.id === item.highestBidderId) { %>
+                                <a href="/community/auction/<%= item._id %>/file" class="btn btn-success">자료 다운로드</a>
+                            <% } %>
+                        <% } else { %>
+                            <p>입찰자 없이 경매가 종료되었습니다.</p>
+                        <% } %>
+                    </div>
+
+                <% } else if (canBid) { %>
                     <form action="/community/auction/<%= item._id %>/bid" method="POST">
                         <div class="mb-3">
                             <label for="bidPrice" class="form-label">입찰 금액</label>
@@ -72,44 +82,171 @@
                         <a href="/auth/login?redirect=/community/auction/<%= item._id %>">로그인</a> 후 입찰할 수 있습니다.
                     </p>
                 <% } %>
-            </div>
-        </div>
-    </div>
-</div>
 
+            </div> </div> <div class="col-md-3">
+            <p class="text-muted text-center border p-2">
+                <span class="text-success fw-bold">
+                    <span id="user-count">?</span>명
+                </span>
+                이(가) 접속 중
+            </p>
+
+            <h5 class="mt-3">실시간 채팅</h5>
+            <div class="chat-box" style="height: 300px; border: 1px solid #ccc; overflow-y: scroll; padding: 10px; margin-bottom: 10px;">
+                <ul id="chat-messages" class="list-unstyled">
+                </ul>
+            </div>
+
+            <% if (currentUser) { %>
+                <form id="chat-form">
+                    <div class="input-group">
+                        <input type="text" id="chat-input" class="form-control form-control-sm" placeholder="메시지 입력..." required>
+                        <button type="submit" class="btn btn-sm btn-outline-secondary">전송</button>
+                    </div>
+                </form>
+            <% } %>
+
+            </div> </div> </div> </div> <script src="/socket.io/socket.io.js"></script>
 <script src="/socket.io/socket.io.js"></script>
 <script>
-    // 1. 소켓 서버에 연결
+    // ----------------------------------
+    // 1. 전역 변수 설정
+    // ----------------------------------
     const socket = io();
-
-    // 2. 현재 경매 아이템의 고유 ID (EJS 변수 사용)
     const currentAuctionId = "<%= item._id %>";
 
-    // 3. 서버에 'join:room' 이벤트를 보내 이 방에 입장
+    // ⭐️ [추가] 2. 타이머를 위한 변수 (EJS에서 마감 시간을 JS 변수로 받음)
+    let auctionEndDate = new Date("<%= item.endDate %>");
+    let timerInterval = null; // setInterval을 저장할 변수
+    let auctionEndedFlag = false; // 종료 이벤트를 한 번만 보내기 위한 플래그
+
+    // ----------------------------------
+    // 3. 타이머 실행 함수
+    // ----------------------------------
+    function startTimer() {
+        const timerEl = document.getElementById('timer');
+        if (!timerEl) return;
+
+        // 기존 타이머가 있으면 중지 (입찰 연장 시 재시작을 위해)
+        if (timerInterval) clearInterval(timerInterval);
+
+        timerInterval = setInterval(() => {
+            const now = new Date();
+            const distance = auctionEndDate.getTime() - now.getTime();
+
+            if (distance <= 0) {
+                // 3a. 타이머 종료
+                clearInterval(timerInterval);
+                timerEl.innerText = "[경매 종료]";
+                if (auctionEndedFlag === false) {
+                    auctionEndedFlag = true; // 플래그를 true로 바꿔서 중복 실행 방지
+
+                    // ⭐️ [수정] 2. 서버에 "경매 종료 확인" 이벤트 전송
+                    console.log('타이머 0초. 서버에 종료 확인 요청...');
+                    socket.emit('auction:try_end', currentAuctionId);
+                }
+            } else {
+                // 3b. 시간 계산 (HH:MM:SS)
+                const hours = Math.floor(distance / (1000 * 60 * 60));
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+                // 3c. 타이머 표시 (예: [01:05:30] 남음)
+                timerEl.innerText = `[${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')} 남음]`;
+            }
+        }, 1000);
+    }
+
+    // ----------------------------------
+    // 4. Socket.IO 이벤트 리스너
+    // ----------------------------------
+
+    // 4a. 서버에 연결 및 방 입장
     socket.emit('join:room', currentAuctionId);
 
-    // 4. 서버로부터 'bid:update' 이벤트를 수신 대기
+    // 4b. 'bid:update' 수신 (입찰 갱신)
     socket.on('bid:update', (data) => {
-
-        // 5. DOM 요소 찾기
+        // ... (DOM 요소 찾기: priceEl, bidderEl, inputEl) ...
         const priceEl = document.getElementById('current-price');
         const bidderEl = document.getElementById('highest-bidder');
         const inputEl = document.getElementById('bidPrice');
 
-        // 6. DOM 내용 실시간 변경
-        if (priceEl) {
-            priceEl.innerText = data.newPrice.toLocaleString() + ' 원';
-        }
-        if (bidderEl) {
-            bidderEl.innerText = `최고 입찰자: ${data.bidderNickname} <span class ="text-primary fw-bold;">($data.bidderReputation}점)</span>`;
-        }
+        // ... (DOM 갱신: 가격, 닉네임, 평판, input 최소값) ...
+        if (priceEl) priceEl.innerText = data.newPrice.toLocaleString() + ' 원';
+        if (bidderEl) bidderEl.innerHTML = `최고 입찰자: ${data.bidderNickname} <span class="text-primary fw-bold">(${data.bidderReputation}점)</span>`;
         if (inputEl) {
-            // 다음 입찰을 위해 최소 입찰가를 갱신
             inputEl.min = data.newPrice + 1;
-            // 혹시 내가 입찰한 금액보다 낮은 금액이 써있으면 지워줌
-            if (Number(inputEl.value) <= data.newPrice) {
-                inputEl.value = '';
-            }
+            if (Number(inputEl.value) <= data.newPrice) inputEl.value = '';
+        }
+
+        // ⭐️ [추가] 4c. 1분 연장된 'newEndDate' 수신
+        if (data.newEndDate) {
+            console.log('1분 연장! 새 마감 시간:', data.newEndDate);
+            auctionEndDate = new Date(data.newEndDate); // 타이머의 기준 시간 갱신
+            startTimer(); // 갱신된 시간으로 타이머 재시작
+        }
+    });
+    socket.on('room:update', (data) => {
+        const userCountEl = document.getElementById('user-count');
+        if (userCountEl) userCountEl.innerText = data.count;
+    });
+    socket.on('chat:new_message', (data) => {
+        const chatMessages = document.getElementById('chat-messages');
+        const chatBox = document.querySelector('.chat-box');
+        if (chatMessages) {
+            // 1. 새 <li> 태그 생성
+            const li = document.createElement('li');
+            li.innerHTML = `<small><strong>${data.nickname}:</strong> ${data.msg}</small>`;
+            // 2. 채팅창에 추가
+            chatMessages.appendChild(li);
+            // 3. (UX) 스크롤을 맨 아래로 내림
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+    });
+    socket.on('auction:ended', (data) => {
+        console.log('서버로부터 경매 공식 종료 이벤트 수신:', data);
+
+        // 1. 현재 로그인한 내 ID (EJS 변수 사용)
+        const myUserId = "<%= currentUser ? currentUser.id : '' %>";
+
+        if (data.highestBidderId && data.highestBidderId === myUserId) {
+            alert('🎉 축하합니다! 경매에 최종 낙찰되었습니다! 🎉');
+        }
+
+        // 4. (모든 유저) 경매가 종료되었으므로 2초 뒤 페이지를 새로고침
+        setTimeout(() => {
+            location.reload();
+        }, 2000); // 2초 뒤 새로고침
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // 5a. 타이머 시작
+        if ("<%= item.status %>" === 'active') {
+            startTimer();
+        } else { /* ... (종료 처리) ... */ }
+
+        // ⭐️ [추가] 5b. 채팅 폼 전송(submit) 이벤트 바인딩
+        const chatForm = document.getElementById('chat-form');
+        const chatInput = document.getElementById('chat-input');
+
+        // (로그인한 유저만 chatForm이 존재함)
+        if (chatForm) {
+            chatForm.addEventListener('submit', (e) => {
+                e.preventDefault(); // 폼 기본 동작(새로고침) 방지
+
+                const msg = chatInput.value;
+                if (msg.trim()) {
+                    // (1) 서버로 채팅 메시지 전송
+                    socket.emit('chat:send', {
+                        msg: msg,
+                        // (2) EJS 변수로 현재 로그인한 유저의 닉네임 전송
+                        nickname: "<%= currentUser ? currentUser.anonymousNickname : '익명' %>"
+                    });
+
+                    // (3) 입력창 비우기
+                    chatInput.value = '';
+                }
+            });
         }
     });
 </script>

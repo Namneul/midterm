@@ -1,9 +1,11 @@
 <% layout('layout') -%>
 
-<h1>경매 등록</h1>
+<h1><%= title %></h1>
+
 <form action="/community/auction" method="POST" enctype="multipart/form-data">
+
     <div class="mb-3">
-        <label for="title" class="form-label">자료 제목</label>
+        <label for="title" class="form-label">제목</label>
         <input type="text" class="form-control" id="title" name="title" required>
     </div>
 
@@ -13,20 +15,50 @@
     </div>
 
     <div class="mb-3">
-        <label for="auctionFile" class="form-label">업로드 파일</label>
-        <input type="file" class="form-control" id="auctionFile" name="auctionFile"
-               accept=".jpg, .jpeg, .png, .pdf" required>
+        <label for="auctionFile" class="form-label">첨부 파일 (pdf, 이미지)</label>
+        <input class="form-control" type="file" id="auctionFile" name="auctionFile" accept="image/jpeg, image/png, image/gif, application/pdf" required>
+
+        <small class="form-text text-muted">
+            .jpg, .png, .gif, .pdf 파일만 가능합니다.
+        </small>
     </div>
 
     <div class="mb-3">
-        <label for="startPrice" class="form-label">시작가 (원)</label>
-        <input type="number" class="form-control" id="startPrice" name="startPrice" min="0" value="1000" required>
+        <label for="startPrice" class="form-label">경매 시작 가격 (원)</label>
+        <input type="number" class="form-control" id="startPrice" name="startPrice" min="0" required>
     </div>
 
     <div class="mb-3">
-        <label for="endDate" class="form-label">경매 마감 시간</label>
-        <input type="datetime-local" class="form-control" id="endDate" name="endDate" required>
+        <label for="endDateInput" class="form-label">경매 마감 시간</label>
+        <input type="datetime-local" class="form-control" id="endDateInput" name="endDate" required>
+        <small class="form-text text-danger">경매 시간은 최대 2시간까지 설정 가능합니다.</small>
     </div>
 
-    <button type="submit" class="btn btn-primary">경매 등록하기</button>
+    <button type="submit" class="btn btn-success">경매 등록하기</button>
 </form>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const endDateInput = document.getElementById('endDateInput');
+
+        const toLocalISOString = (date) => {
+            const offset = date.getTimezoneOffset() * 60000;
+            const localISOTime = (new Date(date.getTime() - offset)).toISOString().slice(0, 16);
+            return localISOTime;
+        };
+
+        const now = new Date();
+
+        // 최소 시간 = 지금 (현재 시간 1분 뒤부터 가능하게)
+        const minDate = new Date(now.getTime() + 60 * 1000); // 1분 뒤
+        const minTime = toLocalISOString(minDate);
+
+        // 최대 시간 = 2시간 뒤
+        const maxDate = new Date(now.getTime() + (2 * 60 * 60 * 1000)); // 2시간
+        const maxTime = toLocalISOString(maxDate);
+
+        endDateInput.min = minTime;
+        endDateInput.max = maxTime;
+        endDateInput.value = minTime; // (선택) 기본값으로 1분 뒤를 설정
+    });
+</script>

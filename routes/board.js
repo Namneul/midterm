@@ -1,8 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const BoardPost = require('../models/BoardPost'); // 1단계에서 만든 게시글 모델
-const Comment = require('../models/Comment');     // 1단계에서 만든 댓글 모델
-// const db = require('../models/maria'); // (평판 점수 연동 시 필요)
+const BoardPost = require('../models/BoardPost');
+const Comment = require('../models/Comment');
 
 // -----------------------------
 // 1. 게시글 (Post)
@@ -112,8 +111,78 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// POST /board/:id/delete - 글 삭제
-router.post('/:id/delete', async (req, res) => {
+router.get('/:id/edit', async (req, res) => {
+    try {
+        if (!req.session.user) {
+            req.flash('error', '로그인이 필요합니다.');
+            return res.redirect('/auth/login');
+        }
+
+        const post = await BoardPost.findById(req.params.id);
+
+        if (!post) {
+            req.flash('error', '게시글을 찾을 수 없습니다.');
+            return res.redirect('/board');
+        }
+
+        // [권한] 본인 글이 아니면 수정 폼에 진입 불가
+        if (post.authorId !== req.session.user.id) {
+            req.flash('error', '수정 권한이 없습니다.');
+            return res.redirect(`/board/${req.params.id}`);
+        }
+
+        // ⭐️ 2단계: 'views/board-edit.ejs' 렌더링 (post 객체 전달)
+        res.render('board-edit', {
+            title: "게시글 수정",
+            post: post
+        });
+
+    } catch (e) {
+        console.error(e);
+        res.redirect(`/board/${req.params.id}`);
+    }
+});
+
+router.put('/:id', async (req, res) => {
+    try {
+        if (!req.session.user) {
+            req.flash('error', '세션이 만료되었습니다.');
+            return res.redirect('/auth/login');
+        }
+
+        const { id: postId } = req.params;
+        const { title, content } = req.body; // ⭐️ 수정된 제목/내용
+
+        const post = await BoardPost.findById(postId);
+
+        if (!post) {
+            req.flash('error', '게시글을 찾을 수 없습니다.');
+            return res.redirect('/board');
+        }
+
+        // [권한] 본인 글이 아니면 수정 처리 불가
+        if (post.authorId !== req.session.user.id) {
+            req.flash('error', '수정 권한이 없습니다.');
+            return res.redirect(`/board/${postId}`);
+        }
+
+        // [DB] ⭐️ 'findByIdAndUpdate'로 수정
+        await BoardPost.findByIdAndUpdate(postId, {
+            title: title,
+            content: content
+        });
+
+        req.flash('success', '게시글이 수정되었습니다.');
+        res.redirect(`/board/${postId}`); // ⭐️ 수정된 '상세 페이지'로 복귀
+
+    } catch (e) {
+        console.error(e);
+        req.flash('error', '글 수정 중 오류가 발생했습니다.');
+        res.redirect(`/board/${req.params.id}/edit`);
+    }
+});
+
+router.delete('/:id/delete', async (req, res) => {
     try {
         if (!req.session.user) {
             req.flash('error', '로그인이 필요합니다.');
@@ -127,17 +196,13 @@ router.post('/:id/delete', async (req, res) => {
             req.flash('error', '삭제할 글이 없습니다.');
             return res.redirect('/board');
         }
-
-        // [권한] 본인 글인지 확인
-        if (post.authorId !== req.session.user.id) {
+        // ⭐️ 관리자가 아니면서, 본인 글도 아닐 때
+        if (req.session.user.isAdmin !== 1 && post.authorId !== req.session.user.id) {
             req.flash('error', '삭제 권한이 없습니다.');
             return res.redirect(`/board/${postId}`);
         }
 
-        // 1. 글 삭제
         await BoardPost.findByIdAndDelete(postId);
-
-        // 2. 이 글에 달린 모든 댓글도 삭제 (중요)
         await Comment.deleteMany({ post: postId });
 
         req.flash('success', '게시글이 삭제되었습니다.');
@@ -202,8 +267,48 @@ router.post('/:id/comments', async (req, res) => {
     }
 });
 
-// POST /board/:postId/comments/:commentId/delete - 댓글 삭제
-router.post('/:postId/comments/:commentId/delete', async (req, res) => {
+router.put('/:postId/comments/:commentId', async (req, res) => {
+    try {
+        if (!req.session.user) {
+            req.flash('error', '세션이 만료되었습니다.');
+            return res.redirect('/auth/login');
+        }
+
+        const { postId, commentId } = req.params;
+        const { content } = req.body; // ⭐️ 폼에서 받은 '새' 내용
+
+        if (!content) {
+            req.flash('error', '댓글 내용을 입력해주세요.');
+            return res.redirect(`/board/${postId}`);
+        }
+
+        const comment = await Comment.findById(commentId);
+
+        if (!comment) {
+            req.flash('error', '수정할 댓글이 없습니다.');
+            return res.redirect(`/board/${postId}`);
+        }
+
+        // [권한] 본인 댓글이 아니면 수정 불가
+        if (comment.authorId !== req.session.user.id) {
+            req.flash('error', '댓글 수정 권한이 없습니다.');
+            return res.redirect(`/board/${postId}`);
+        }
+
+        // [DB] ⭐️ 댓글 내용(content) 업데이트
+        await Comment.findByIdAndUpdate(commentId, { content: content });
+
+        req.flash('success', '댓글이 수정되었습니다.');
+        res.redirect(`/board/${postId}`); // ⭐️ 상세 페이지로 복귀
+
+    } catch (e) {
+        console.error(e);
+        req.flash('error', '댓글 수정 중 오류가 발생했습니다.');
+        res.redirect(`/board/${req.params.postId}`);
+    }
+});
+
+router.delete('/:postId/comments/:commentId/delete', async (req, res) => {
     try {
         if (!req.session.user) {
             req.flash('error', '로그인이 필요합니다.');
@@ -217,17 +322,14 @@ router.post('/:postId/comments/:commentId/delete', async (req, res) => {
             req.flash('error', '삭제할 댓글이 없습니다.');
             return res.redirect(`/board/${postId}`);
         }
-
-        // [권한] 본인 댓글인지 확인
-        if (comment.authorId !== req.session.user.id) {
+        // ⭐️ 관리자가 아니면서, 본인 댓글도 아닐 때
+        if (req.session.user.isAdmin !== 1 && comment.authorId !== req.session.user.id) {
             req.flash('error', '삭제 권한이 없습니다.');
             return res.redirect(`/board/${postId}`);
         }
 
-        // 1. 댓글 삭제
         await Comment.findByIdAndDelete(commentId);
 
-        // 2. 부모 게시글의 'comments' 배열에서도 참조 ID 제거 (MongoDB $pull 연산자)
         await BoardPost.findByIdAndUpdate(postId, {
             $pull: { comments: commentId }
         });

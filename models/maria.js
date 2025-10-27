@@ -3,6 +3,7 @@ const mariadb = require('mysql2/promise');
 
 const pool = mariadb.createPool({
     host: 'localhost',
+    port: 3366,
     user: 'appuser',
     password: '123123',
     database: `202110935`,
