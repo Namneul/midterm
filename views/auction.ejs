@@ -16,7 +16,9 @@
                                 <strong>현재가:</strong> <%= item.currentPrice.toLocaleString() %> 원
                             </p>
                             <p class="card-text">
-                                <small class="text-muted">판매자: <%= item.sellerNickname %></small>
+                                <small class="text-muted">판매자: <%= item.sellerNickname %>
+                                <span class="text-primary fw-bold">(<%= item.sellerReputationSnapshot %>점) </span>
+                                </small>
                             </p>
                             <p class="card-text">
                                 <small class="text-muted">마감: <%= new Date(item.endDate).toLocaleString() %></small>

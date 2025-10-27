@@ -1,0 +1,17 @@
+<% layout('layout') -%>
+
+<h1><%= title %></h1>
+
+<form action="/board" method="POST">
+    <div class="mb-3">
+        <label for="title" class="form-label">제목</label>
+        <input type="text" class="form-control" id="title" name="title" required>
+    </div>
+
+    <div class="mb-3">
+        <label for="content" class="form-label">내용</label>
+        <textarea class="form-control" id="content" name="content" rows="10" required></textarea>
+    </div>
+
+    <button type="submit" class="btn btn-success">글 등록하기</button>
+</form>

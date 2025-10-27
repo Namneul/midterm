@@ -1,0 +1,65 @@
+<% layout('layout') -%>
+
+<h1><%= title %></h1>
+<a href="/board/new" class="btn btn-primary mb-3">새 글 작성하기</a>
+
+<div class="board-list">
+    <% if (posts.length > 0) { %>
+        <table class="table table-hover">
+            <thead>
+            <tr>
+                <th scope="col">제목</th>
+                <th scope="col">작성자</th>
+                <th scope="col">작성일</th>
+            </tr>
+            </thead>
+            <tbody>
+            <% posts.forEach(post => { %>
+                <tr>
+                    <td>
+                        <a href="/board/<%= post._id %>">
+                            <%= post.title %>
+                            <span class="text-muted">[<%= post.comments.length %>]</span>
+                        </a>
+                    </td>
+                    <td>
+                        <%= post.authorNickname %>
+                        <span class="text-primary fw-bold">(<%= post.authorReputation %>점)</span>
+                    </td>
+                    <td><%= new Date(post.createdAt).toLocaleDateString() %></td>
+                </tr>
+            <% }) %>
+            </tbody>
+        </table>
+    <% } else { %>
+        <p>아직 작성된 글이 없습니다.</p>
+    <% } %>
+</div>
+
+<nav class="mt-4" aria-label="Page navigation">
+    <ul class="pagination justify-content-center">
+        <% if (currentPage > 1) { %>
+            <li class="page-item">
+                <a class="page-link" href="/board?page=<%= currentPage - 1 %>">이전</a>
+            </li>
+        <% } else { %>
+            <li class="page-item disabled"><a class="page-link" href="#">이전</a></li>
+        <% } %>
+
+        <% for (let i = 1; i <= totalPages; i++) { %>
+            <% if (i === currentPage) { %>
+                <li class="page-item active"><a class="page-link" href="#"><%= i %></a></li>
+            <% } else { %>
+                <li class="page-item"><a class="page-link" href="/board?page=<%= i %>"><%= i %></a></li>
+            <% } %>
+        <% } %>
+
+        <% if (currentPage < totalPages) { %>
+            <li class="page-item">
+                <a class="page-link" href="/board?page=<%= currentPage + 1 %>">다음</a>
+            </li>
+        <% } else { %>
+            <li class="page-item disabled"><a class="page-link" href="#">다음</a></li>
+        <% } %>
+    </ul>
+</nav>

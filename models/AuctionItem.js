@@ -30,7 +30,7 @@ const auctionItemSchema = new mongoose.Schema({
     },
     endDate: {
         type: Date,
-        required: true
+        required: true,
     }, // 경매 마감 시간
 
     // 3. 판매자 정보 (MariaDB의 User와 연결)
@@ -40,7 +40,11 @@ const auctionItemSchema = new mongoose.Schema({
     },
     sellerNickname: {
         type: String, // 익명 닉네임 [cite: 9]
-        required: true
+        required: true,
+        sellerReputationSnapshot:{
+            type: Number,
+            default: 0
+        },
     },
 
     // 4. 실시간 경매 현황

@@ -25,11 +25,10 @@ router.get('/', (req, res) => {
 router.get('/auth/login', (req, res) => {
     res.render('login-signup', {
         title: '로그인',
-        mode: 'login'
+        mode: 'login',
+        redirect: req.query.redirect
     });
 });
-
-// routes/index.js (수정된 코드)
 
 router.get('/auth/logout', (req, res) => {
 
@@ -117,7 +116,7 @@ router.post('/auth/signup', async (req, res) => {
 
 router.post('/auth/login', async (req, res) => {
     try {
-        const { id, password } = req.body;
+        const { id, password, redirect } = req.body;
         const [rows] = await db.query('SELECT * FROM userdata WHERE Id=?', [id]);
         const failMsg = '아이디 또는 비밀번호가 올바르지 않습니다.';
 
@@ -127,17 +126,27 @@ router.post('/auth/login', async (req, res) => {
         }
         const user = rows[0];
         const ok = await bcrypt.compare(password, user.password_hash);
+        const redirectUrl = (redirect && redirect.startsWith('/')) ? redirect : '/profile';
         if (!ok) {
             if (wantsJSON(req)) return res.status(401).json({ ok:false, message: failMsg, fieldErrors:{ password: failMsg }});
             req.flash('error', failMsg); return res.redirect('/auth/login');
         }
 
-        req.session.user = { id: user.Id, name: user.name,
-            email: user.email, university:user.university, studentNum: user.studentNum, anonymousNickname: user.anonymous_nickname };
-        const okResp = { ok:true, message:`환영합니다, ${user.name}님!`, redirect:'/profile' };
-        if (wantsJSON(req)) return res.json(okResp);
-        req.flash('success', okResp.message); return res.redirect('/profile');
+        let userNickname = user.anonymous_nickname;
+        if (!userNickname) { // 닉네임이 NULL(비어있으면)
+            console.log(`[로그인] 기존 유저 (${user.Id}) 닉네임 없음. 새로 생성 후 DB 업데이트...`);
+            userNickname = generateRandomNickname(); // (a) 새 닉네임 생성
+            // (b) DB에 이 닉네임을 즉시 저장
+            await db.query('UPDATE userdata SET anonymous_nickname = ? WHERE Id = ?', [userNickname, user.Id]);
+        }
 
+        req.session.user = { id: user.Id, name: user.name, email: user.email, university:user.university,
+            studentNum: user.studentNum, anonymousNickname: userNickname, reputationScore: user.reputation_score };
+        const okResp = { ok:true, message:`환영합니다, ${user.name}님!`, redirect: redirectUrl };
+        if (wantsJSON(req)) return res.json(okResp);
+
+        req.flash('success', okResp.message);
+        return res.redirect(redirectUrl);
     } catch (e) {
         console.error(e);
         if (wantsJSON(req)) return res.status(500).json({ ok:false, message:'서버 오류' });

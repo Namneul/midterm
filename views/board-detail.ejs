@@ -1,0 +1,58 @@
+<% layout('layout') -%>
+
+<div class="mb-4">
+    <h1><%= post.title %></h1>
+    <p class="text-muted">
+        작성자: <%= post.authorNickname %>
+        <span class="text-primary fw-bold">(<%= post.authorReputation %>점)</span>
+        | 작성일: <%= new Date(post.createdAt).toLocaleString() %>
+    </p>
+    <hr>
+    <p style="white-space: pre-wrap; min-height: 150px;"><%= post.content %></p>
+    <hr>
+</div>
+
+<% if (currentUser && currentUser.id === post.authorId) { %>
+    <form action="/board/<%= post._id %>/delete" method="POST"
+          onsubmit="return confirm('정말 이 글을 삭제하시겠습니까?');"
+          class="mb-3">
+        <button type="submit" class="btn btn-danger">이 글 삭제하기</button>
+    </form>
+<% } %>
+
+
+<div class="mb-4">
+    <h4>댓글 달기</h4>
+    <form action="/board/<%= post._id %>/comments" method="POST">
+        <div class="input-group">
+            <input type="text" class="form-control" name="content" placeholder="댓글을 입력하세요..." required>
+            <button class="btn btn-outline-secondary" type="submit">등록</button>
+        </div>
+    </form>
+</div>
+
+<div>
+    <h4>댓글 목록 (<%= post.comments.length %>)</h4>
+    <ul class="list-group">
+        <% if (post.comments.length > 0) { %>
+            <% post.comments.forEach(comment => { %>
+                <li class="list-group-item">
+                    <strong><%= comment.authorNickname %></strong>
+                    <small class="text-muted">(<%= new Date(comment.createdAt).toLocaleString() %>)</small>
+
+                    <% if (currentUser && currentUser.id === comment.authorId) { %>
+                        <form action="/board/<%= post._id %>/comments/<%= comment._id %>/delete"
+                              method="POST"
+                              class="d-inline float-end">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">x</button>
+                        </form>
+                    <% } %>
+
+                    <p class="mb-0"><%= comment.content %></p>
+                </li>
+            <% }) %>
+        <% } else { %>
+            <li class="list-group-item">작성된 댓글이 없습니다.</li>
+        <% } %>
+    </ul>
+</div>

@@ -37,6 +37,7 @@
         </form>
     <% } else { %>
         <form class="form js-auth-form" action="/auth/login" method="post" novalidate>
+            <input type="hidden" name="redirect" value="<%= (typeof redirect !== 'undefined' ? redirect : '/') %>">
             <label>아이디
                 <input name="id" type="text" placeholder="pizzaboy123" required />
             </label>

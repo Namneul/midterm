@@ -24,6 +24,7 @@ app.set('views', path.join(__dirname, 'views'));
 
 const mainRouter = require('./routes/index');
 const communityRouter = require('./routes/community')
+const boardRouter = require('./routes/board');
 
 const sessionMiddleware = session({
     secret: '123123',
@@ -46,6 +47,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', mainRouter);
 app.use('/community', communityRouter);
+app.use('/board', boardRouter);
 
 io.on('connection', (socket) => {
     console.log('새로운 유저가 접속했습니다.');

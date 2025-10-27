@@ -1,27 +1,43 @@
-<% layout('layout', { title: 'Chat' }) %>
-<section class="grid-2">
-    <div class="card">
-        <h1>Chat Rooms</h1>
-        <ul class="list">
-            <li>공구채팅</li>
-            <li>잡담방</li>
-            <li>거래상담</li>
-        </ul>
-    </div>
-    <div class="card">
-        <h2>Room View</h2>
-        <div class="chat-box">
-            <div class="bubble">안녕하세요!</div>
-            <div class="bubble me">안녕하세요, 관심 있어요.</div>
-            <div class="bubble">가격 제안 가능합니다.</div>
-        </div>
-        <div class="chat-input">
-            <input placeholder="메시지를 입력하세요"/>
-            <button class="btn">전송</button>
-        </div>
-        <div class="mt-16">
-            <a class="btn ghost" href="/community">← Community</a>
-        </div>
-    </div>
-</section>
+<% layout('layout') -%>
 
+<h1>자유수다</h1>
+<p>여기서는 모든 닉네임이 '익명'으로 표시됩니다.</p>
+
+<div class="chat-window" style="border: 1px solid #ccc; height: 400px; overflow-y: scroll; padding: 10px; margin-bottom: 15px;">
+
+    <% if (posts.length > 0) { %>
+        <% posts.forEach(post => { %>
+            <div class="chat-message" style="margin-bottom: 10px;">
+                <strong>익명 <%= post.anonymousNumber %></strong>
+
+                <% if (currentUser && currentUser.id === post.authorId) { %>
+                    <small style="margin-left: 10px;">
+                        (
+                        <a href="/community/chat/<%= post._id %>/delete"
+                           onclick="return confirm('정말 삭제하시겠습니까?');"
+                           style="color: red; text-decoration: none;">삭제</a>
+                        )
+                    </small>
+                <% } %>
+
+                <p style="margin: 0;"><%= post.content %></p>
+                <small style="color: #888;"><%= new Date(post.createdAt).toLocaleString() %></small>
+            </div>
+        <% }) %>
+    <% } else { %>
+        <p>아직 작성된 글이 없습니다.</p>
+    <% } %>
+
+</div>
+
+<form action="/community/chat" method="POST">
+    <div class="input-group">
+        <input type="text" class="form-control" name="content" placeholder="내용을 입력하세요..." required>
+        <button class="btn btn-primary" type="submit">전송</button>
+    </div>
+</form>
+
+<script>
+    // '삭제' 링크를 POST 요청으로 보내기 위한 스크립트 (나중에 DELETE 메서드로 변경)
+    // 지금은 간단하게 GET으로 처리하겠습니다. (삭제 라우트 추가 필요)
+</script>
