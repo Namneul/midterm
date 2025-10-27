@@ -75,7 +75,7 @@ router.post('/auction', upload.single('auctionFile'), async (req, res) => {
 
         // 5. 익명 닉네임 (임시로 세션 이름 사용, 추후 '평판 기능'시 수정)
         // [cite: 9] 모든 활동은 익명 닉네임으로 이루어져야 함
-        const sellerNickname = req.session.user.name; // TODO: 실제 익명 닉네임으로 교체
+        const sellerNickname = req.session.user.anonymousNickname; // TODO: 실제 익명 닉네임으로 교체
 
         // 6. MongoDB에 저장
         const newItem = new AuctionItem({
@@ -217,7 +217,11 @@ router.post('/auction/:id/bid', async (req, res) => {
             return res.redirect(`/community/auction/${auctionId}`);
         }
 
-        const { id: bidderId, name: bidderNickname } = req.session.user; // 익명 닉네임으로 교체 필요
+        const { id: bidderId, anonymousNickname: bidderNickname } = req.session.user; // 익명 닉네임으로 교체 필요
+        if (!bidderNickname){
+            req.flash('error', '입찰하려면 익명 닉네임이 필요합니다.')
+            return res.redirect(`/community/auction/${auctionId}`);
+        }
         const { bidPrice } = req.body; // 폼에서 보낸 입찰가
 
         const item = await AuctionItem.findById(auctionId);
@@ -261,7 +265,7 @@ router.post('/auction/:id/bid', async (req, res) => {
         // 3b. AuctionItem 업데이트 (현재가, 최고입찰자, 연장된 마감시간)
         item.currentPrice = bidPrice;
         item.highestBidderId = bidderId;
-        // item.endDate는 위에서 연장되었을 수 있으므로 함께 저장
+        item.highestBidderNickname = bidderNickname;
         await item.save();
 
         // 4. [필수] MariaDB 감사 로그 기록
@@ -270,7 +274,11 @@ router.post('/auction/:id/bid', async (req, res) => {
             [auctionId, bidderId, bidderNickname, bidPrice, now]
         );
 
-        // 5. 성공 및 리다이렉트
+        req.io.to(auctionId).emit('bid:update', {
+            newPrice: item.currentPrice,
+            bidderNickname: item.highestBidderNickname
+        });
+
         if (req.flash('success').length === 0) { // 연장 메시지가 없었으면
             req.flash('success', '입찰에 성공했습니다.');
         }

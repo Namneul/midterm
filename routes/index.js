@@ -7,6 +7,15 @@ function wantsJSON(req) {
     return req.xhr || req.get('accept')?.includes('application/json');
 }
 
+function generateRandomNickname(){
+    const adjectives = ["친절한", "용감한", "배고픈", "졸린", "행복한", "재빠른", "빛나는"];
+    const nouns = ["코알라", "다람쥐", "호랑이", "고양이", "개발자", "학생", "유니콘"];
+    // 겹치지 않도록 뒤에 0~999 사이 랜덤 숫자를 붙입니다.
+    const randomAdj = adjectives[Math.floor(Math.random() * adjectives.length)];
+    const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
+    return `${randomAdj} ${randomNoun}${Math.floor(Math.random() * 1000)}`;
+}
+
 router.get('/', (req, res) => {
     res.render('main', {
         title:"메인"
@@ -87,9 +96,10 @@ router.post('/auth/signup', async (req, res) => {
         }
 
         const hash = await bcrypt.hash(password, 12);
+        const anonymousNickname = generateRandomNickname();
         await db.query(
-            'INSERT INTO userdata (name, Id, password_hash, email, university, studentNum) VALUES (?,?,?,?,?,?)',
-            [name, id, hash, email, university, studentNum]
+            'INSERT INTO userdata (name, Id, password_hash, email, university, studentNum, anonymous_nickname) VALUES (?,?,?,?,?,?,?)',
+            [name, id, hash, email, university, studentNum, anonymousNickname]
         );
 
         const okResp = { ok:true, message:'회원가입이 완료되었습니다.', redirect:'/auth/login' };
@@ -122,7 +132,8 @@ router.post('/auth/login', async (req, res) => {
             req.flash('error', failMsg); return res.redirect('/auth/login');
         }
 
-        req.session.user = { id: user.Id, name: user.name, password: user.password_hash ,email: user.email, university:user.university, studentNum: user.studentNum };
+        req.session.user = { id: user.Id, name: user.name,
+            email: user.email, university:user.university, studentNum: user.studentNum, anonymousNickname: user.anonymous_nickname };
         const okResp = { ok:true, message:`환영합니다, ${user.name}님!`, redirect:'/profile' };
         if (wantsJSON(req)) return res.json(okResp);
         req.flash('success', okResp.message); return res.redirect('/profile');

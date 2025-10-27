@@ -30,7 +30,7 @@
         <div class="col-md-6">
             <div class="card p-3">
                 <h3 class="text-center">현재 입찰가</h3>
-                <h1 class="text-center text-success"><%= item.currentPrice.toLocaleString() %> 원</h1>
+                <h1 id="current-price" class="text-center text-success"><%= item.currentPrice.toLocaleString() %> 원</h1>
 
                 <hr>
 
@@ -60,3 +60,40 @@
         </div>
     </div>
 </div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    // 1. 소켓 서버에 연결
+    const socket = io();
+
+    // 2. 현재 경매 아이템의 고유 ID (EJS 변수 사용)
+    const currentAuctionId = "<%= item._id %>";
+
+    // 3. 서버에 'join:room' 이벤트를 보내 이 방에 입장
+    socket.emit('join:room', currentAuctionId);
+
+    // 4. 서버로부터 'bid:update' 이벤트를 수신 대기
+    socket.on('bid:update', (data) => {
+
+        // 5. DOM 요소 찾기
+        const priceEl = document.getElementById('current-price');
+        const bidderEl = document.getElementById('highest-bidder');
+        const inputEl = document.getElementById('bidPrice');
+
+        // 6. DOM 내용 실시간 변경
+        if (priceEl) {
+            priceEl.innerText = data.newPrice.toLocaleString() + ' 원';
+        }
+        if (bidderEl) {
+            bidderEl.innerText = '최고 입찰자: ' + data.bidderNickname;
+        }
+        if (inputEl) {
+            // 다음 입찰을 위해 최소 입찰가를 갱신
+            inputEl.min = data.newPrice + 1;
+            // 혹시 내가 입찰한 금액보다 낮은 금액이 써있으면 지워줌
+            if (Number(inputEl.value) <= data.newPrice) {
+                inputEl.value = '';
+            }
+        }
+    });
+</script>

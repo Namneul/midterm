@@ -53,6 +53,10 @@ const auctionItemSchema = new mongoose.Schema({
         type: String, // 현재 최고 입찰자의 MariaDB User ID
         default: null
     },
+    highestBidderNickname: {
+        type: String,
+        default: null
+    },
 
     // 경매 상태 (진행중, 종료 등)
     status: {
