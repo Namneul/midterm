@@ -1,64 +1,72 @@
 <% layout('layout') -%>
 
-<h1><%= title %></h1>
+<h1 class="text-2xl font-bold text-gray-800 mb-6"><%= title %></h1>
 
-<form action="/community/auction" method="POST" enctype="multipart/form-data">
+<form action="/community/auction" method="POST" enctype="multipart/form-data" class="max-w-xl space-y-4">
 
-    <div class="mb-3">
-        <label for="title" class="form-label">제목</label>
-        <input type="text" class="form-control" id="title" name="title" required>
+    <div>
+        <label for="title" class="block text-sm font-medium text-gray-700">제목</label>
+        <div class="mt-1">
+            <input type="text" name="title" id="title" required class="input-field">
+        </div>
     </div>
 
-    <div class="mb-3">
-        <label for="description" class="form-label">자료 설명</label>
-        <textarea class="form-control" id="description" name="description" rows="5" required></textarea>
+    <div>
+        <label for="description" class="block text-sm font-medium text-gray-700">자료 설명</label>
+        <div class="mt-1">
+            <textarea id="description" name="description" rows="5" required class="input-field"></textarea>
+        </div>
     </div>
 
-    <div class="mb-3">
-        <label for="auctionFile" class="form-label">첨부 파일 (pdf, 이미지)</label>
-        <input class="form-control" type="file" id="auctionFile" name="auctionFile" accept="image/jpeg, image/png, image/gif, application/pdf" required>
-
-        <small class="form-text text-muted">
-            .jpg, .png, .gif, .pdf 파일만 가능합니다.
-        </small>
+    <div>
+        <label for="auctionFile" class="block text-sm font-medium text-gray-700">첨부 파일 (pdf, 이미지)</label>
+        <div class="mt-1">
+            <input type="file" name="auctionFile" id="auctionFile" required accept="image/jpeg, image/png, image/gif, application/pdf"
+                   class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+        </div>
+        <p class="mt-1 text-xs text-gray-500">.jpg, .png, .gif, .pdf 파일만 가능합니다.</p>
     </div>
 
-    <div class="mb-3">
-        <label for="startPrice" class="form-label">경매 시작 가격 (원)</label>
-        <input type="number" class="form-control" id="startPrice" name="startPrice" min="0" required>
+    <div>
+        <label for="startPrice" class="block text-sm font-medium text-gray-700">경매 시작 가격 (원)</label>
+        <div class="mt-1 relative rounded-md shadow-sm">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><span class="text-gray-500 sm:text-sm"> ₩ </span></div>
+            <input type="number" name="startPrice" id="startPrice" required min="0" placeholder="0"
+                   class="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md">
+        </div>
     </div>
 
-    <div class="mb-3">
-        <label for="endDateInput" class="form-label">경매 마감 시간</label>
-        <input type="datetime-local" class="form-control" id="endDateInput" name="endDate" required>
-        <small class="form-text text-danger">경매 시간은 최대 2시간까지 설정 가능합니다.</small>
+    <div>
+        <label for="endDateInput" class="block text-sm font-medium text-gray-700">경매 마감 시간</label>
+        <div class="mt-1">
+            <input type="datetime-local" name="endDate" id="endDateInput" required class="input-field">
+        </div>
+        <p class="mt-1 text-xs text-red-500">경매 시간은 최소 1분 ~ 최대 2시간까지 설정 가능합니다.</p>
     </div>
 
-    <button type="submit" class="btn btn-success">경매 등록하기</button>
+    <div class="flex items-center space-x-3 pt-2">
+        <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">경매 등록하기</button>
+        <a href="/community/auction" class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">취소</a>
+    </div>
 </form>
 
+<%# 2시간 제한 스크립트 (최소 시간 1분 추가) %>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const endDateInput = document.getElementById('endDateInput');
-
-        const toLocalISOString = (date) => {
+        const toLocalISOString = (date) => { /* ... (시간 변환 함수) ... */
             const offset = date.getTimezoneOffset() * 60000;
             const localISOTime = (new Date(date.getTime() - offset)).toISOString().slice(0, 16);
             return localISOTime;
         };
-
         const now = new Date();
-
-        // 최소 시간 = 지금 (현재 시간 1분 뒤부터 가능하게)
-        const minDate = new Date(now.getTime() + 60 * 1000); // 1분 뒤
-        const minTime = toLocalISOString(minDate);
-
-        // 최대 시간 = 2시간 뒤
-        const maxDate = new Date(now.getTime() + (2 * 60 * 60 * 1000)); // 2시간
-        const maxTime = toLocalISOString(maxDate);
-
-        endDateInput.min = minTime;
-        endDateInput.max = maxTime;
-        endDateInput.value = minTime; // (선택) 기본값으로 1분 뒤를 설정
+        const minDate = new Date(now.getTime() + 60 * 1000); // 최소 1분 뒤
+        const maxDate = new Date(now.getTime() + (2 * 60 * 60 * 1000)); // 최대 2시간 뒤
+        endDateInput.min = toLocalISOString(minDate);
+        endDateInput.max = toLocalISOString(maxDate);
+        endDateInput.value = toLocalISOString(minDate); // 기본값 1분 뒤 설정
     });
 </script>
+
+<%# 공통 Input 스타일 (login-signup.ejs에도 있음) %>
+<style> .input-field { appearance: none; display: block; width: 100%; padding: 0.75rem; border: 1px solid #D1D5DB; border-radius: 0.375rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); } .input-field:focus { outline: none; --tw-ring-color: #6366F1; --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color); --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color); box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000); border-color: #6366F1; } </style>

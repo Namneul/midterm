@@ -1,34 +1,40 @@
 <% layout('layout') -%>
 
-<h1><%= title %></h1>
-<p>수정할 수 있는 정보만 표시됩니다. (ID, 익명 닉네임 등은 변경 불가)</p>
+<h1 class="text-2xl font-bold text-gray-800 mb-6"><%= title %></h1>
+<p class="text-sm text-gray-600 mb-6">수정할 수 있는 정보만 표시됩니다. (ID, 익명 닉네임 등은 변경 불가)</p>
 
-<form action="/profile/update?_method=PUT" method="POST">
+<form action="/profile/update?_method=PUT" method="POST" class="max-w-xl space-y-4">
 
-    <div class="mb-3">
-        <label for="name" class="form-label">실명</label>
-        <input type="text" class="form-control" id="name" name="name"
-               value="<%= currentUser.name %>" required>
+    <div>
+        <label for="name" class="block text-sm font-medium text-gray-700">실명</label>
+        <div class="mt-1">
+            <input type="text" name="name" id="name" value="<%= currentUser.name %>" required class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
+        </div>
     </div>
 
-    <div class="mb-3">
-        <label for="email" class="form-label">이메일</label>
-        <input type="email" class="form-control" id="email" name="email"
-               value="<%= currentUser.email %>" required>
+    <div>
+        <label for="email" class="block text-sm font-medium text-gray-700">이메일</label>
+        <div class="mt-1">
+            <input type="email" name="email" id="email" value="<%= currentUser.email %>" required class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
+        </div>
     </div>
 
-    <div class="mb-3">
-        <label for="university" class="form-label">학교</label>
-        <input type="text" class="form-control" id="university" name="university"
-               value="<%= currentUser.university %>">
+    <div>
+        <label for="university" class="block text-sm font-medium text-gray-700">학교</label>
+        <div class="mt-1">
+            <input type="text" name="university" id="university" value="<%= currentUser.university %>" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
+        </div>
     </div>
 
-    <div class="mb-3">
-        <label for="studentNum" class="form-label">학번</label>
-        <input type="text" class="form-control" id="studentNum" name="studentNum"
-               value="<%= currentUser.studentNum %>">
+    <div>
+        <label for="studentNum" class="block text-sm font-medium text-gray-700">학번</label>
+        <div class="mt-1">
+            <input type="text" name="studentNum" id="studentNum" value="<%= currentUser.studentNum %>" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
+        </div>
     </div>
 
-    <button type="submit" class="btn btn-success">수정 완료</button>
-    <a href="/profile" class="btn btn-secondary">취소 (마이페이지로)</a>
+    <div class="flex items-center space-x-3 pt-2">
+        <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">수정 완료</button>
+        <a href="/profile" class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">취소</a>
+    </div>
 </form>

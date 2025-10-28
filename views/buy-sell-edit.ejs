@@ -1,43 +1,43 @@
 <% layout('layout') -%>
 
-<h1><%= title %></h1>
+<h1 class="text-2xl font-bold text-gray-800 mb-6"><%= title %></h1>
 
-<form action="/community/buy-sell/<%= post._id %>?_method=PUT" method="POST">
-
-    <div class="mb-3">
-        <label class="form-label">분류</label>
-        <div>
-            <div class="form-check form-check-inline">
-                <input class="form-check-input" type="radio" name="postType" id="typeSell" value="sell"
-                        <%= post.postType === 'sell' ? 'checked' : '' %> required>
-                <label class="form-check-label" for="typeSell">팝니다 (Sell)</label>
+<form action="/community/buy-sell/<%= post._id %>?_method=PUT" method="POST" class="max-w-xl space-y-4">
+    <div>
+        <label class="block text-sm font-medium text-gray-700">분류</label>
+        <fieldset class="mt-1"> <legend class="sr-only">거래 타입</legend>
+            <div class="space-y-2 sm:flex sm:items-center sm:space-y-0 sm:space-x-4">
+                <div class="flex items-center">
+                    <input id="typeSell" name="postType" type="radio" value="sell" <%= post.postType === 'sell' ? 'checked' : '' %> required class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300">
+                    <label for="typeSell" class="ml-2 block text-sm font-medium text-gray-700"> 팝니다 (Sell) </label>
+                </div>
+                <div class="flex items-center">
+                    <input id="typeBuy" name="postType" type="radio" value="buy" <%= post.postType === 'buy' ? 'checked' : '' %> class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300">
+                    <label for="typeBuy" class="ml-2 block text-sm font-medium text-gray-700"> 삽니다 (Buy) </label>
+                </div>
             </div>
-            <div class="form-check form-check-inline">
-                <input class="form-check-input" type="radio" name="postType" id="typeBuy" value="buy"
-                        <%= post.postType === 'buy' ? 'checked' : '' %>>
-                <label class="form-check-label" for="typeBuy">삽니다 (Buy)</label>
-            </div>
+        </fieldset>
+    </div>
+    <div>
+        <label for="title" class="block text-sm font-medium text-gray-700">제목</label>
+        <div class="mt-1"><input type="text" name="title" id="title" value="<%= post.title %>" required class="input-field"></div>
+    </div>
+    <div>
+        <label for="content" class="block text-sm font-medium text-gray-700">내용</label>
+        <div class="mt-1"><textarea id="content" name="content" rows="10" required class="input-field"><%= post.content %></textarea></div>
+    </div>
+    <div>
+        <label for="price" class="block text-sm font-medium text-gray-700">가격 (원)</label>
+        <div class="mt-1 relative rounded-md shadow-sm">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><span class="text-gray-500 sm:text-sm"> ₩ </span></div>
+            <input type="number" name="price" id="price" value="<%= post.price %>" required min="0" class="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md">
         </div>
     </div>
-
-    <div class="mb-3">
-        <label for="title" class="form-label">제목</label>
-        <input type="text" class="form-control" id="title" name="title"
-               value="<%= post.title %>" required>
+    <div class="flex items-center space-x-3 pt-2">
+        <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">수정 완료</button>
+        <a href="/community/buy-sell/<%= post._id %>" class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">취소</a>
     </div>
-
-    <div class="mb-3">
-        <label for="content" class="form-label">내용</label>
-        <textarea class="form-control" id="content" name="content"
-                  rows="10" required><%= post.content %></textarea>
-    </div>
-
-    <div class="mb-3">
-        <label for="price" class="form-label">가격 (원)</label>
-        <input type="number" class="form-control" id="price" name="price"
-               value="<%= post.price %>" min="0" required>
-    </div>
-
-    <button type="submit" class="btn btn-success">수정 완료</button>
-    <a href="/community/buy-sell/<%= post._id %>" class="btn btn-secondary">취소</a>
 </form>
+
+<%# 공통 Input 스타일 %>
+<style> .input-field { appearance: none; display: block; width: 100%; padding: 0.75rem; border: 1px solid #D1D5DB; border-radius: 0.375rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); } .input-field:focus { outline: none; --tw-ring-color: #6366F1; /* ... (focus 스타일) */ border-color: #6366F1; box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000); } </style>

@@ -34,7 +34,11 @@ const boardPostSchema = new Schema({
             type: Schema.Types.ObjectId,
             ref: 'Comment' // 'Comment' 모델 참조
         }
-    ]
+    ],
+    likes: [{
+        type: String, // MariaDB User ID
+        index: true   // 특정 사용자가 좋아요 눌렀는지 빠르게 찾기 위해
+    }]
 }, {
     // 생성/수정 시간 자동 기록
     timestamps: true

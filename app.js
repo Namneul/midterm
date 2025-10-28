@@ -25,11 +25,6 @@ app.engine('ejs', ejsMate);
 app.set('view engine','ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-const adminRouter = require('./routes/admin');
-const mainRouter = require('./routes/index');
-const communityRouter = require('./routes/community')
-const boardRouter = require('./routes/board');
-
 const sessionMiddleware = session({
     secret: '123123',
     resave: false,
@@ -57,6 +52,12 @@ const isAdmin = (req, res, next) => {
     next();
 }
 
+const mainRouter = require('./routes/index');
+const adminRouter = require('./routes/admin');
+const communityRouter = require('./routes/community')
+const boardRouter = require('./routes/board');
+
+
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(methodOverride('_method'));
@@ -65,7 +66,20 @@ app.use('/', mainRouter);
 app.use('/community', communityRouter);
 app.use('/board', boardRouter);
 app.use('/admin', isAdmin, adminRouter);
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
+app.use(
+    '/api-docs',
+    swaggerUi.serve,
+    swaggerUi.setup(specs, {
+        swaggerOptions: {
+            persistAuthorization: true,
+            requestInterceptor: (req) => {
+                // same-origin 쿠키 포함
+                req.credentials = 'include';
+                return req;
+            },
+        },
+    })
+);
 
 
 io.on('connection', (socket) => {

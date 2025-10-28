@@ -1,43 +1,53 @@
 <% layout('layout') -%>
 
-<h1>자유수다</h1>
-<p>여기서는 모든 닉네임이 '익명'으로 표시됩니다.</p>
+<h1 class="text-2xl font-bold text-gray-800 mb-2">자유수다</h1>
+<p class="text-sm text-gray-600 mb-6">여기서는 모든 닉네임이 '익명 + 번호'로 표시됩니다. (24시간 후 자동 삭제)</p>
 
-<div class="chat-window" style="border: 1px solid #ccc; height: 400px; overflow-y: scroll; padding: 10px; margin-bottom: 15px;">
+<div class="bg-white shadow rounded-lg">
+    <%# 채팅 메시지 영역 %>
+    <div id="chat-window" class="h-96 overflow-y-auto p-4 space-y-4">
+        <% if (posts.length > 0) { %>
+            <% posts.forEach(post => { %>
+                <% const isMyPost = currentUser && currentUser.id === post.authorId; %>
+                <div class="chat-message flex <%= isMyPost ? 'justify-end' : 'justify-start' %>">
+                    <div class="<%= isMyPost ? 'bg-indigo-500 text-white' : 'bg-gray-200 text-gray-800' %> rounded-lg px-3 py-2 max-w-xs lg:max-w-md">
+                        <p class="text-xs font-semibold <%= isMyPost ? 'text-indigo-100' : 'text-gray-500' %> mb-1">
+                            익명 <%= post.anonymousNumber %>
+                            <% if (isMyPost) { %> (나) <% } %>
+                            <span class="text-xs font-normal opacity-70 ml-2"><%= new Date(post.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) %></span>
+                            <%# 삭제 버튼 (본인만) %>
+                            <% if (isMyPost) { %>
+                        <form action="/community/chat/<%= post._id %>/delete" method="GET" class="inline ml-1" onsubmit="return confirm('메시지를 삭제하시겠습니까?');">
+                            <button type="submit" class="text-xs opacity-60 hover:opacity-100 focus:outline-none">×</button>
+                        </form>
+                        <% } %>
+                        </p>
+                        <p class="text-sm break-words"><%= post.content %></p>
+                    </div>
+                </div>
+            <% }) %>
+        <% } else { %>
+            <p class="text-center text-gray-500 text-sm py-4">아직 작성된 메시지가 없습니다.</p>
+        <% } %>
+    </div>
 
-    <% if (posts.length > 0) { %>
-        <% posts.forEach(post => { %>
-            <div class="chat-message" style="margin-bottom: 10px;">
-                <strong>익명 <%= post.anonymousNumber %></strong>
-
-                <% if (currentUser && currentUser.id === post.authorId) { %>
-                    <small style="margin-left: 10px;">
-                        (
-                        <a href="/community/chat/<%= post._id %>/delete"
-                           onclick="return confirm('정말 삭제하시겠습니까?');"
-                           style="color: red; text-decoration: none;">삭제</a>
-                        )
-                    </small>
-                <% } %>
-
-                <p style="margin: 0;"><%= post.content %></p>
-                <small style="color: #888;"><%= new Date(post.createdAt).toLocaleString() %></small>
-            </div>
-        <% }) %>
-    <% } else { %>
-        <p>아직 작성된 글이 없습니다.</p>
-    <% } %>
-
+    <%# 메시지 입력 폼 %>
+    <div class="border-t border-gray-200 p-4">
+        <form action="/community/chat" method="POST" id="chat-form" class="flex space-x-3">
+            <input type="text" name="content" id="chat-input" placeholder="메시지를 입력하세요..." required autocomplete="off"
+                   class="flex-grow shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
+            <button type="submit"
+                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                전송
+            </button>
+        </form>
+    </div>
 </div>
 
-<form action="/community/chat" method="POST">
-    <div class="input-group">
-        <input type="text" class="form-control" name="content" placeholder="내용을 입력하세요..." required>
-        <button class="btn btn-primary" type="submit">전송</button>
-    </div>
-</form>
-
 <script>
-    // '삭제' 링크를 POST 요청으로 보내기 위한 스크립트 (나중에 DELETE 메서드로 변경)
-    // 지금은 간단하게 GET으로 처리하겠습니다. (삭제 라우트 추가 필요)
+    // 페이지 로드 시 스크롤 맨 아래로
+    const chatWindow = document.getElementById('chat-window');
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+
+    // (선택) Socket.IO로 실시간 채팅 기능 추가 가능
 </script>

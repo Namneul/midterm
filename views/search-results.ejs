@@ -1,0 +1,129 @@
+<%# 1. 레이아웃 파일 지정 (이것만 남깁니다) %>
+<% layout('layout') -%>
+
+<%# 2. <main> 태그 안에 들어갈 내용만 남깁니다 %>
+<h1 class="text-3xl font-bold text-gray-800 mb-3">
+    통합 검색 결과
+</h1>
+<% if (query) { %>
+    <p class="text-lg text-indigo-700 font-medium mb-8">
+        "<strong class="font-semibold"><%= query %></strong>"에 대한 검색 결과입니다.
+    </p>
+<% } else { %>
+    <p class="text-lg text-gray-500 mb-8">
+        검색어를 입력해주세요.
+    </p>
+<% } %>
+
+<%# 검색 결과 없을 때 %>
+<% if (!query || (results.board.length === 0 && results.buySell.length === 0 && results.auction.length === 0 && results.user.length === 0)) { %>
+    <% if(query) { %>
+        <div class="bg-white p-8 rounded-lg shadow text-center border border-gray-200">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <p class="mt-4 text-gray-600 text-lg">"<strong class="font-semibold"><%= query %></strong>"에 대한 결과를 찾을 수 없습니다.</p>
+            <p class="text-sm text-gray-400 mt-1">다른 키워드로 다시 검색해보세요.</p>
+        </div>
+    <% } %>
+<% } else { %>
+
+    <%# 결과 요약 %>
+    <div class="mb-10 p-4 bg-indigo-50 rounded-lg border border-indigo-200 flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium">
+        <span class="text-gray-700">경매: <strong class="text-indigo-600"><%= results.auction.length %>건</strong></span>
+        <span class="text-gray-700">자유게시판: <strong class="text-indigo-600"><%= results.board.length %>건</strong></span>
+        <span class="text-gray-700">사고팔고: <strong class="text-indigo-600"><%= results.buySell.length %>건</strong></span>
+        <span class="text-gray-700">사용자: <strong class="text-indigo-600"><%= results.user.length %>명</strong></span>
+    </div>
+
+    <div class="space-y-12">
+
+        <%# 1. 경매 검색 결과 %>
+        <section>
+            <h2 class="text-xl font-semibold text-gray-700 mb-4 border-l-4 border-red-500 pl-3">📦 경매 항목 (<%= results.auction.length %>)</h2>
+            <div class="space-y-4">
+                <% if (results.auction.length > 0) { %>
+                    <% results.auction.forEach(item => { %>
+                        <a href="<%= item.link %>" class="result-item block p-4 bg-white rounded-lg shadow border border-gray-200 hover:border-red-400">
+                            <h3 class="text-md font-semibold text-gray-900 truncate"><%= item.title %></h3>
+                            <p class="text-sm text-gray-500 truncate mt-1"><%= item.description %></p>
+                            <div class="mt-2 text-xs text-gray-500 flex justify-between items-center">
+                                <span class="font-medium text-red-600">현재가: <%= item.currentPrice.toLocaleString() %>원</span>
+                                <span><%= item.authorNickname || item.sellerNickname %></span>
+                            </div>
+                        </a>
+                    <% }) %>
+                <% } else { %>
+                    <p class="text-sm text-gray-500 p-4 bg-white rounded-lg border">경매 항목에서 일치하는 결과를 찾지 못했습니다.</p>
+                <% } %>
+            </div>
+        </section>
+
+        <%# 2. 자유게시판 검색 결과 %>
+        <section>
+            <h2 class="text-xl font-semibold text-gray-700 mb-4 border-l-4 border-green-500 pl-3">📝 자유게시판 (<%= results.board.length %>)</h2>
+            <div class="space-y-4">
+                <% if (results.board.length > 0) { %>
+                    <% results.board.forEach(post => { %>
+                        <a href="<%= post.link %>" class="result-item block p-4 bg-white rounded-lg shadow border border-gray-200 hover:border-green-400">
+                            <h3 class="text-md font-semibold text-gray-900 truncate"><%= post.title %></h3>
+                            <p class="text-sm text-gray-500 truncate mt-1"><%= post.content %></p>
+                            <div class="mt-2 text-xs text-gray-500 flex justify-between items-center">
+                                <span><%= new Date(post.createdAt).toLocaleDateString() %></span>
+                                <span><%= post.authorNickname %></span>
+                            </div>
+                        </a>
+                    <% }) %>
+                <% } else { %>
+                    <p class="text-sm text-gray-500 p-4 bg-white rounded-lg border">자유게시판에서 일치하는 결과를 찾지 못했습니다.</p>
+                <% } %>
+            </div>
+        </section>
+
+        <%# 3. 사고팔고 검색 결과 %>
+        <section>
+            <h2 class="text-xl font-semibold text-gray-700 mb-4 border-l-4 border-blue-500 pl-3">🛒 사고팔고 (<%= results.buySell.length %>)</h2>
+            <div class="space-y-4">
+                <% if (results.buySell.length > 0) { %>
+                    <% results.buySell.forEach(post => { %>
+                        <a href="<%= post.link %>" class="result-item block p-4 bg-white rounded-lg shadow border border-gray-200 hover:border-blue-400">
+                            <h3 class="text-md font-semibold text-gray-900 truncate">
+                                <% if (post.postType === 'sell') { %><span class="text-xs font-medium mr-1 px-1.5 py-0.5 rounded bg-red-100 text-red-800">팝니다</span><% } else { %><span class="text-xs font-medium mr-1 px-1.5 py-0.5 rounded bg-blue-100 text-blue-800">삽니다</span><% } %>
+                                <%= post.title %>
+                            </h3>
+                            <p class="text-sm text-gray-500 truncate mt-1"><%= post.content %></p>
+                            <div class="mt-2 text-xs text-gray-500 flex justify-between items-center">
+                                <span class="font-medium text-blue-600">가격: <%= post.price.toLocaleString() %>원</span>
+                                <span><%= post.authorNickname %></span>
+                            </div>
+                        </a>
+                    <% }) %>
+                <% } else { %>
+                    <p class="text-sm text-gray-500 p-4 bg-white rounded-lg border">사고팔고 게시판에서 일치하는 결과를 찾지 못했습니다.</p>
+                <% } %>
+            </div>
+        </section>
+
+        <%# 4. 사용자 검색 결과 %>
+        <section>
+            <h2 class="text-xl font-semibold text-gray-700 mb-4 border-l-4 border-purple-500 pl-3">👤 사용자 닉네임 (<%= results.user.length %>)</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <% if (results.user.length > 0) { %>
+                    <% results.user.forEach(user => { %>
+                        <div class="result-item flex items-center p-3 bg-white rounded-lg shadow border border-gray-200 hover:border-purple-400">
+                            <span class="flex-shrink-0 h-8 w-8 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center text-sm font-semibold border border-purple-200"><%= user.anonymous_nickname.charAt(0) %></span>
+                            <div class="ml-3 min-w-0 flex-1">
+                                <p class="text-sm font-medium text-gray-900 truncate"><%= user.anonymous_nickname %></p>
+                                <p class="text-xs text-gray-500 truncate">ID: <%= user.Id %></p>
+                            </div>
+                        </div>
+                    <% }) %>
+                <% } else { %>
+                    <div class="col-span-full">
+                        <p class="text-sm text-gray-500 p-4 bg-white rounded-lg border">일치하는 사용자를 찾지 못했습니다.</p>
+                    </div>
+                <% } %>
+            </div>
+        </section>
+    </div>
+<% } %>

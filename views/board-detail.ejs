@@ -1,99 +1,127 @@
 <% layout('layout') -%>
 
-<div class="mb-4">
-    <h1><%= post.title %></h1>
-    <p class="text-muted">
-        작성자: <%= post.authorNickname %>
-        <span class="text-primary fw-bold">(<%= post.authorReputation %>점)</span>
-        | 작성일: <%= new Date(post.createdAt).toLocaleString() %>
-    </p>
-    <hr>
-    <p style="white-space: pre-wrap; min-height: 150px;"><%= post.content %></p>
-    <hr>
+<!-- 1. 게시글 상세 내용 -->
+<div class="bg-white shadow overflow-hidden rounded-lg mb-6">
+    <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+        <h1 class="text-xl leading-6 font-semibold text-gray-900"><%= post.title %></h1>
+        <p class="mt-1 max-w-2xl text-sm text-gray-500">
+            작성자: <%= post.authorNickname %>
+            <span class="text-purple-600 font-medium">(<%= post.authorReputation %>점)</span>
+            | 작성일: <%= new Date(post.createdAt).toLocaleString() %>
+        </p>
+    </div>
+    <div class="px-4 py-5 sm:p-6">
+        <p class="text-gray-700" style="white-space: pre-wrap; min-height: 100px;"><%= post.content %></p>
+    </div>
 </div>
 
+<!-- 2. 게시글 수정/삭제 버튼 (본인만) -->
 <% if (currentUser && currentUser.id === post.authorId) { %>
-
-    <a href="/board/<%= post._id %>/edit" class="btn btn-warning mb-3">
-        이 글 수정하기
-    </a>
-
-    <form action="/board/<%= post._id %>/delete?_method=DELETE" method="POST"
-          onsubmit="return confirm('정말 이 글을 삭제하시겠습니까?');"
-          class="mb-3">
-        <button type="submit" class="btn btn-danger">이 글 삭제하기</button>
-    </form>
+    <div class="mb-6 space-x-2">
+        <a href="/board/<%= post._id %>/edit" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded shadow-sm text-white bg-yellow-500 hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-400">
+            수정
+        </a>
+        <form action="/board/<%= post._id %>/delete?_method=DELETE" method="POST" class="inline" onsubmit="return confirm('정말 이 글을 삭제하시겠습니까?');">
+            <button type="submit" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                삭제
+            </button>
+        </form>
+    </div>
 <% } %>
 
+<div class="mt-4 mb-6 flex items-center space-x-3">
+    <% if (currentUser) { %> <%# 로그인한 경우에만 버튼 표시 %>
+    <%# '좋아요' 토글 폼 %>
+    <form action="/board/<%= post._id %>/like" method="POST" class="inline">
+        <%# 내가 '좋아요' 했는지 여부 확인 %>
+        <% const userLiked = post.likes && post.likes.includes(currentUser.id); %>
 
-<div class="mb-4">
-    <h4>댓글 달기</h4>
+        <button type="submit"
+                class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500
+                           <%= userLiked ? 'text-white bg-pink-600 hover:bg-pink-700' : 'text-pink-700 bg-pink-100 hover:bg-pink-200' %>">
+            <%# 하트 아이콘 SVG %>
+            <svg class="-ml-0.5 mr-1.5 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd" />
+            </svg>
+            <%= userLiked ? '좋아요 취소' : '좋아요' %>
+        </button>
+    </form>
+    <% } %>
+
+    <%# 좋아요 카운트 %>
+    <span class="text-sm text-gray-500">
+        ❤️ <%= post.likes ? post.likes.length : 0 %>명이 좋아합니다.
+    </span>
+</div>
+
+<!-- 3. 댓글 작성 폼 -->
+<div class="mb-6">
+    <h4 class="text-lg font-medium text-gray-900 mb-2">댓글 달기</h4>
     <form action="/board/<%= post._id %>/comments" method="POST">
-        <div class="input-group">
-            <input type="text" class="form-control" name="content" placeholder="댓글을 입력하세요..." required>
-            <button class="btn btn-outline-secondary" type="submit">등록</button>
+        <div class="flex items-start space-x-3">
+            <textarea name="content" rows="2" placeholder="댓글을 입력하세요..." required
+                      class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md flex-grow"></textarea>
+            <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                등록
+            </button>
         </div>
     </form>
 </div>
 
+<!-- 4. 댓글 목록 -->
 <div>
-    <h4>댓글 목록 (<%= post.comments.length %>)</h4>
-    <ul class="list-group">
-        <% if (post.comments.length > 0) { %>
-            <% post.comments.forEach(comment => { %>
-                <li class="list-group-item">
-                    <strong><%= comment.authorNickname %></strong>
-                    <small class="text-muted">(<%= new Date(comment.createdAt).toLocaleString() %>)</small>
-
-                    <div class="comment-content-<%= comment._id %>">
-                        <p class="mb-0 mt-2"><%= comment.content %></p>
-                    </div>
-
-                    <form action="/board/<%= post._id %>/comments/<%= comment._id %>?_method=PUT" method="POST"
-                          class="comment-edit-form-<%= comment._id %>" style="display: none;">
-                        <div class="input-group mt-2">
-                            <input type="text" class="form-control" name="content"
-                                   value="<%= comment.content %>" required>
-                            <button type="submit" class="btn btn-sm btn-success">저장</button>
-                            <button type="button" class="btn btn-sm btn-secondary"
-                                    onclick="toggleCommentEdit('<%= comment._id %>', false)">취소</button>
+    <h4 class="text-lg font-medium text-gray-900 mb-3">댓글 목록 (<%= post.comments.length %>)</h4>
+    <div class="bg-white shadow overflow-hidden rounded-md">
+        <ul role="list" class="divide-y divide-gray-200">
+            <% if (post.comments.length > 0) { %>
+                <% post.comments.forEach(comment => { %>
+                    <li class="px-4 py-4 sm:px-6">
+                        <div class="flex items-baseline justify-between">
+                            <p class="text-sm font-medium text-indigo-600 truncate"><%= comment.authorNickname %></p>
+                            <p class="ml-2 text-xs text-gray-400"><%= new Date(comment.createdAt).toLocaleString() %></p>
                         </div>
-                    </form>
 
-                    <% if (currentUser && currentUser.id === comment.authorId) { %>
-                        <div class="mt-2">
-                            <button type="button" class="btn btn-sm btn-outline-warning"
-                                    onclick="toggleCommentEdit('<%= comment._id %>', true)">
-                                수정
-                            </button>
-
-                            <form action="/board/<%= post._id %>/comments/<%= comment._id %>/delete?_method=DELETE"
-                                  method="POST" class="d-inline float-end">
-                                <button type="submit" class="btn btn-sm btn-outline-danger">x</button>
+                        <%# 댓글 내용 (수정 가능) %>
+                        <div class="mt-2 text-sm text-gray-700">
+                            <div class="comment-content-<%= comment._id %>">
+                                <p><%= comment.content %></p>
+                            </div>
+                            <%# 수정 폼 (숨김) %>
+                            <form action="/board/<%= post._id %>/comments/<%= comment._id %>?_method=PUT" method="POST" class="comment-edit-form-<%= comment._id %> mt-1" style="display: none;">
+                                <div class="flex space-x-2">
+                                    <input type="text" name="content" value="<%= comment.content %>" required class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md flex-grow">
+                                    <button type="submit" class="px-2.5 py-1.5 border border-transparent text-xs font-medium rounded shadow-sm text-white bg-green-600 hover:bg-green-700">저장</button>
+                                    <button type="button" class="px-2.5 py-1.5 border border-gray-300 text-xs font-medium rounded shadow-sm text-gray-700 bg-white hover:bg-gray-50" onclick="toggleCommentEdit('<%= comment._id %>', false)">취소</button>
+                                </div>
                             </form>
                         </div>
-                    <% } %>
 
-                </li>
-            <% }) %>
-        <% } else { %>
-            <li class="list-group-item">작성된 댓글이 없습니다.</li>
-        <% } %>
-    </ul>
+                        <%# 수정/삭제 버튼 (본인만) %>
+                        <% if (currentUser && currentUser.id === comment.authorId) { %>
+                            <div class="mt-2 text-right space-x-2">
+                                <button type="button" class="text-xs text-yellow-600 hover:text-yellow-900" onclick="toggleCommentEdit('<%= comment._id %>', true)">수정</button>
+                                <form action="/board/<%= post._id %>/comments/<%= comment._id %>/delete?_method=DELETE" method="POST" class="inline" onsubmit="return confirm('댓글을 삭제하시겠습니까?');">
+                                    <button type="submit" class="text-xs text-red-600 hover:text-red-900">삭제</button>
+                                </form>
+                            </div>
+                        <% } %>
+                    </li>
+                <% }) %>
+            <% } else { %>
+                <li class="px-4 py-4 sm:px-6 text-sm text-gray-500 text-center">작성된 댓글이 없습니다.</li>
+            <% } %>
+        </ul>
+    </div>
 </div>
 
 <script>
     function toggleCommentEdit(commentId, showEditForm) {
-        // 1. DOM 요소 2개 선택
         const contentDiv = document.querySelector('.comment-content-' + commentId);
         const editForm = document.querySelector('.comment-edit-form-' + commentId);
-
         if (showEditForm) {
-            // 2. [수정] 버튼 클릭 시: 폼 O, 내용 X
             contentDiv.style.display = 'none';
             editForm.style.display = 'block';
         } else {
-            // 3. [취소] 버튼 클릭 시: 폼 X, 내용 O
             contentDiv.style.display = 'block';
             editForm.style.display = 'none';
         }

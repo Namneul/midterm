@@ -43,7 +43,11 @@ const buySellPostSchema = new Schema({
             type: Schema.Types.ObjectId,
             ref: 'Comment' // 'Comment' 모델 참조
         }
-    ]
+    ],
+    likes: [{
+        type: String, // MariaDB User ID
+        index: true
+    }]
 
 }, {
     timestamps: true

@@ -1,37 +1,52 @@
 <% layout('layout') -%>
 
-<h1><%= title %></h1>
+<h1 class="text-2xl font-bold text-gray-800 mb-6"><%= title %></h1>
 
-<form action="/community/buy-sell" method="POST">
+<form action="/community/buy-sell" method="POST" class="max-w-xl space-y-4">
 
-    <div class="mb-3">
-        <label class="form-label">분류</label>
-        <div>
-            <div class="form-check form-check-inline">
-                <input class="form-check-input" type="radio" name="postType" id="typeSell" value="sell" required>
-                <label class="form-check-label" for="typeSell">팝니다 (Sell)</label>
+    <div>
+        <label class="block text-sm font-medium text-gray-700">분류</label>
+        <fieldset class="mt-1">
+            <legend class="sr-only">Notification method</legend>
+            <div class="space-y-2 sm:flex sm:items-center sm:space-y-0 sm:space-x-4">
+                <div class="flex items-center">
+                    <input id="typeSell" name="postType" type="radio" value="sell" required class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300">
+                    <label for="typeSell" class="ml-2 block text-sm font-medium text-gray-700"> 팝니다 (Sell) </label>
+                </div>
+                <div class="flex items-center">
+                    <input id="typeBuy" name="postType" type="radio" value="buy" class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300">
+                    <label for="typeBuy" class="ml-2 block text-sm font-medium text-gray-700"> 삽니다 (Buy) </label>
+                </div>
             </div>
-            <div class="form-check form-check-inline">
-                <input class="form-check-input" type="radio" name="postType" id="typeBuy" value="buy">
-                <label class="form-check-label" for="typeBuy">삽니다 (Buy)</label>
-            </div>
+        </fieldset>
+    </div>
+
+    <div>
+        <label for="title" class="block text-sm font-medium text-gray-700">제목</label>
+        <div class="mt-1">
+            <input type="text" name="title" id="title" required class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
         </div>
     </div>
 
-    <div class="mb-3">
-        <label for="title" class="form-label">제목</label>
-        <input type="text" class="form-control" id="title" name="title" required>
+    <div>
+        <label for="content" class="block text-sm font-medium text-gray-700">내용</label>
+        <div class="mt-1">
+            <textarea id="content" name="content" rows="10" required class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border border-gray-300 rounded-md"></textarea>
+        </div>
     </div>
 
-    <div class="mb-3">
-        <label for="content" class="form-label">내용</label>
-        <textarea class="form-control" id="content" name="content" rows="10" required></textarea>
+    <div>
+        <label for="price" class="block text-sm font-medium text-gray-700">가격 (원)</label>
+        <div class="mt-1 relative rounded-md shadow-sm">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <span class="text-gray-500 sm:text-sm"> ₩ </span>
+            </div>
+            <input type="number" name="price" id="price" required min="0" class="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md" placeholder="0">
+        </div>
     </div>
 
-    <div class="mb-3">
-        <label for="price" class="form-label">가격 (원)</label>
-        <input type="number" class="form-control" id="price" name="price" min="0" required>
+    <div class="flex items-center space-x-3 pt-2">
+        <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">글 등록하기</button>
+        <a href="/community/buy-sell" class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">취소</a>
     </div>
-
-    <button type="submit" class="btn btn-success">글 등록하기</button>
 </form>
